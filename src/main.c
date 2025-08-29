@@ -17,9 +17,9 @@ int main(){
     char buffer[1024];
 
     printf("Hello, World!\n");
-    int client_conn;
-    int socket_conn = socket(AF_INET, SOCK_STREAM, 0);
-    if (socket_conn < 0) {
+    int client_sock;
+    int serv_sock = socket(AF_INET, SOCK_STREAM, 0);
+    if (serv_sock < 0) {
         perror("socket failed");
         exit(EXIT_FAILURE);
     }
@@ -30,27 +30,27 @@ int main(){
     serv_addr.sin_port = htons(PORT);       
     
 
-    if (bind(socket_conn, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
+    if (bind(serv_sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
         perror("ERROR on binding");
-        close(socket_conn);
+        close(serv_sock);
         exit(1);
     }
 
-    listen(socket_conn, 5);
+    listen(serv_sock, 5);
     printf("Server listening on port %d...\n", PORT);
 
-    client_conn = accept(socket_conn, NULL, NULL);
+    client_sock = accept(serv_sock, NULL, NULL);
 
-    if (client_conn < 0) {
+    if (client_sock < 0) {
         perror("ERROR on accept");
-        close(socket_conn);
+        close(serv_sock);
         exit(1);
     }
     
-    read(client_conn, buffer, sizeof(buffer));
-    write(client_conn, HTTP_RESPONSE_DEMO, strlen(HTTP_RESPONSE_DEMO));
+    read(client_sock, buffer, sizeof(buffer));
+    write(client_sock, HTTP_RESPONSE_DEMO, strlen(HTTP_RESPONSE_DEMO));
 
-    close(client_conn);
-    close(socket_conn);
+    close(client_sock);
+    close(serv_sock);
     return 0;
 }
