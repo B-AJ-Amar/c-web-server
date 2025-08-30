@@ -55,3 +55,7 @@ dkms.conf
 /build
 
 .vscode
+
+TODO*
+*.TODO
+ignore_*

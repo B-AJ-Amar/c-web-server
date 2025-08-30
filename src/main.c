@@ -4,6 +4,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <netinet/in.h>
+#include "http_parser.h"
 
 
 #define PORT 8080
@@ -15,12 +16,21 @@ int main(){
     
     struct sockaddr_in serv_addr;
     char buffer[BUFFER_SIZE];
-
-    printf("Hello, World!\n");
     int client_sock;
+
+    http_request http_req;
+
     int serv_sock = socket(AF_INET, SOCK_STREAM, 0);
     if (serv_sock < 0) {
         perror("socket failed");
+        exit(EXIT_FAILURE);
+    }
+
+
+    // Allow reuse of local addresses
+    int opt = 1;
+    if (setsockopt(serv_sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
+        perror("setsockopt failed");
         exit(EXIT_FAILURE);
     }
 
@@ -38,19 +48,44 @@ int main(){
 
     listen(serv_sock, 5);
     printf("Server listening on port %d...\n", PORT);
-
-    client_sock = accept(serv_sock, NULL, NULL);
-
-    if (client_sock < 0) {
-        perror("ERROR on accept");
-        close(serv_sock);
-        exit(1);
-    }
+    while (1)
+    {
+        client_sock = accept(serv_sock, NULL, NULL);
     
-    read(client_sock, buffer, sizeof(buffer));
-    write(client_sock, HTTP_RESPONSE_DEMO, strlen(HTTP_RESPONSE_DEMO));
+        if (client_sock < 0) {
+            perror("ERROR on accept");
+            close(serv_sock);
+            exit(1);
+        }
+        
+        int n = read(client_sock, buffer, sizeof(buffer));
+        buffer[n] = '\0';
+        printf("New Message : \n\n%s\n===================================\n",buffer);
 
-    close(client_sock);
+        printf("parsing the http request ...");
+
+        parse_http_request(buffer,&http_req);
+
+        if (http_req.is_valid){
+            printf("parsed successfuly\n");
+            printf("method : %s , uri : %s , endpoint : %s \n",http_req.method,http_req.uri,http_req.endpoint);
+            printf("headers count: %d \n",http_req.headers_count);
+
+            printf("quary_params_count : %d \n",http_req.quary_params_count);
+
+            
+            
+        }
+        else {
+            printf("something went wrong");
+        }
+
+
+        write(client_sock, HTTP_RESPONSE_DEMO, strlen(HTTP_RESPONSE_DEMO));
+    
+        close(client_sock);
+
+    }
     close(serv_sock);
     return 0;
 }
