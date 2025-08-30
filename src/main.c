@@ -7,14 +7,14 @@
 
 
 #define PORT 8080
-
+#define BUFFER_SIZE 4096
 #define HTTP_RESPONSE_DEMO "HTTP/1.1 200 OK\r\nContent-Length: 13\r\n\r\nHello client!"
 
 
 int main(){
     
     struct sockaddr_in serv_addr;
-    char buffer[1024];
+    char buffer[BUFFER_SIZE];
 
     printf("Hello, World!\n");
     int client_sock;
