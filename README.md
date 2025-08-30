@@ -6,8 +6,8 @@ A lightweight web server written in C, built from scratch to understand how netw
 
 1. **Basic Server**
 
-   * Create a simple TCP server that listens on a port.
-   * Respond with a fixed static response (e.g., "Hello, World!").
+   [x] Create a simple TCP server that listens on a port.
+   [x] Respond with a fixed static response (e.g., "Hello, World!").
 
 2. **Serve Static Files & Logging**
 
