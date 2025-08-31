@@ -7,18 +7,19 @@ A lightweight web server written in C, built from scratch to understand how netw
 1. **Basic Server**
 
    [x] Create a simple TCP server that listens on a port.
+   
    [x] Respond with a fixed static response (e.g., "Hello, World!").
 
-2. **Serve Static Files & Logging**
+3. **Serve Static Files & Logging**
 
    * Add ability to serve static files (HTML, CSS, images).
    * Implement a basic logging system to track requests and responses.
 
-3. **Multi-Threading Support**
+4. **Multi-Threading Support**
 
    * Enable the server to handle multiple clients concurrently using threads or worker processes.
 
-4. **Security & HTTPS**
+5. **Security & HTTPS**
 
    * Add basic security checks and input validation.
    * Implement TLS/SSL support for HTTPS.
