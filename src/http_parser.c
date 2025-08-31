@@ -1,12 +1,3 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <netinet/in.h>
-#include "http_parser.h"
-
-#define REQUEST_BODY_SIZE 2048
-
 /*
 http requst syntax
 
@@ -34,10 +25,57 @@ username=john&password=1234
 
 
 */
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <netinet/in.h>
+#include <regex.h>
 
+#include "http_parser.h"
+
+
+char http_methods[HTTP_METHODS_LEN][8] = {"GET", "HEAD", "POST", "PUT", "DELETE", "CONNECT", "OPTIONS", "TRACE","PATCH"};
+char http_versions[HTTP_VERSIONS_LEN][10] = {"HTTP/1.1","HTTP/2"};
+regex_t uri_regex;
+
+
+void validate_http_method(char *method, http_request *request){
+    for (int i = 0; i < HTTP_METHODS_LEN; i++) if (strcmp(method,http_methods[i]) == 0) return; 
+    printf("[validate_http_method] error");
+    request->is_invalid = 1; 
+}
+
+void validate_http_version(char *version, http_request *request){
+    for (int i = 0; i < HTTP_VERSIONS_LEN; i++) if (strcmp(version,http_versions[i]) == 0) return;
+    printf("[validate_http_version] error");
+    request->is_invalid = 1;
+    
+}
+
+int init_uri_regex() {
+    if (regcomp(&uri_regex, URI_PATTERN, REG_EXTENDED | REG_NOSUB) != 0) {
+        fprintf(stderr, "Could not compile regex\n");
+        return 0;
+    }
+    return 1;
+}
+
+void free_uri_regex() {
+    regfree(&uri_regex);
+}
+
+void validate_uri(char *uri, http_request *request) {
+    if ( regexec(&uri_regex, uri, 0, NULL, 0) == 0) request->is_invalid = 1;
+}
 
 void parse_request_line(char *line, http_request *request) {
     sscanf(line, "%s %s %s", request->method, request->uri, request->version);
+    validate_http_method(request->method,request);
+    if (request->is_invalid) return;
+    validate_http_version(request->version,request); 
+    if (request->is_invalid) return;
+    validate_uri(request->uri,request);
 }
 
 void parse_quary_param(char *line, http_quary_params *quary) {
@@ -92,15 +130,18 @@ void parse_header_line(char *line, http_headers *header) {
 }
 
 void parse_http_request(char *request_text, http_request *request) {
-
+    request->is_invalid = 0;
     request->headers = NULL;
     request->headers_count = 0;
 
     char *line = strtok(request_text, "\r\n");
-    if (line) parse_request_line(line, request);
+    if (line) {
+        parse_request_line(line, request);
+        if (request->is_invalid) return;   
+    }
     else
     {
-        request->is_valid = 0;
+        request->is_invalid = 1;
         return;
     }
 
@@ -119,5 +160,4 @@ void parse_http_request(char *request_text, http_request *request) {
     
     parse_request_uri(request);
 
-    request->is_valid = 1;
 }

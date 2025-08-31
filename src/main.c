@@ -4,23 +4,37 @@
 #include <string.h>
 #include <unistd.h>
 #include <netinet/in.h>
-#include "http_parser.h"
+#include <regex.h>
 
+#include "http_parser.h"
 
 #define PORT 8080
 #define BUFFER_SIZE 4096
-#define HTTP_RESPONSE_DEMO "HTTP/1.1 200 OK\r\nContent-Length: 13\r\n\r\nHello client!"
 
+#define HTTP_RESPONSE_DEMO "HTTP/1.1 200 OK\r\nContent-Length: 13\r\n\r\nHello client!"
+#define HTTP_RESPONSE_404  "HTTP/1.1 404 OK\r\nContent-Length: 9\r\n\r\n Not Found"
+#define HTTP_RESPONSE_500  "HTTP/1.1 500 OK\r\nContent-Length: 21\r\n\r\nInternal Server Error"
+
+void init_serv(){
+    if (!init_uri_regex()) exit(EXIT_FAILURE);
+}
+
+void kill_serv(int serv_sock){
+    free_uri_regex();
+    close(serv_sock);
+}
 
 int main(){
-    
+
+    init_serv();
+        
     struct sockaddr_in serv_addr;
     char buffer[BUFFER_SIZE];
-    int client_sock;
+    int serv_sock,client_sock;
 
     http_request http_req;
 
-    int serv_sock = socket(AF_INET, SOCK_STREAM, 0);
+    serv_sock = socket(AF_INET, SOCK_STREAM, 0);
     if (serv_sock < 0) {
         perror("socket failed");
         exit(EXIT_FAILURE);
@@ -62,11 +76,11 @@ int main(){
         buffer[n] = '\0';
         printf("New Message : \n\n%s\n===================================\n",buffer);
 
-        printf("parsing the http request ...");
+        printf("parsing the http request ...\n");
 
         parse_http_request(buffer,&http_req);
 
-        if (http_req.is_valid){
+        if (http_req.is_invalid == 0){
             printf("parsed successfuly\n");
             printf("method : %s , uri : %s , endpoint : %s \n",http_req.method,http_req.uri,http_req.endpoint);
             printf("headers count: %d \n",http_req.headers_count);
@@ -74,18 +88,18 @@ int main(){
             printf("quary_params_count : %d \n",http_req.quary_params_count);
 
             
+            write(client_sock, HTTP_RESPONSE_DEMO, strlen(HTTP_RESPONSE_DEMO));
             
         }
         else {
-            printf("something went wrong");
+            printf("something went wrong\n");
+            write(client_sock, HTTP_RESPONSE_500, strlen(HTTP_RESPONSE_500));            
         }
 
-
-        write(client_sock, HTTP_RESPONSE_DEMO, strlen(HTTP_RESPONSE_DEMO));
-    
         close(client_sock);
 
     }
-    close(serv_sock);
+    
+    kill_serv(serv_sock);
     return 0;
 }

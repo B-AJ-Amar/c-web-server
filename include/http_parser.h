@@ -1,7 +1,12 @@
 #ifndef HTTP_PARSER_H
 #define HTTP_PARSER_H
 
-#define REQUEST_BODY_SIZE 2048
+#define HTTP_METHODS_LEN 9
+#define HTTP_VERSIONS_LEN 2
+#define URI_PATTERN "^/[A-Za-z0-9._~!$&'()*+,;=:@/-]*(\\?[A-Za-z0-9._~!$&'()*+,;=:@/?-]*)?$"
+#define REQ_BODY_BUFFER_SIZE 2048
+
+extern regex_t uri_regex;
 
 typedef struct http_headers {
     char key[256];
@@ -22,12 +27,16 @@ typedef struct http_request {
     http_headers *headers;
     int headers_count;
     int quary_params_count;
-    char body[REQUEST_BODY_SIZE];
-    int is_valid;
+    char body[REQ_BODY_BUFFER_SIZE];
+    int is_invalid;
 } http_request;
 
 void parse_request_line(char *line, http_request *request);
 void parse_header_line(char *line, http_headers *header);
 void parse_http_request(char *request_text, http_request *request);
+
+void free_uri_regex();
+void validate_uri(char *uri, http_request *request);
+int init_uri_regex();
 
 #endif // HTTP_PARSER_H
