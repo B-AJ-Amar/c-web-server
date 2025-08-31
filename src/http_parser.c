@@ -35,8 +35,8 @@ username=john&password=1234
 #include "http_parser.h"
 
 
-char http_methods[HTTP_METHODS_LEN][8] = {"GET", "HEAD", "POST", "PUT", "DELETE", "CONNECT", "OPTIONS", "TRACE","PATCH"};
-char http_versions[HTTP_VERSIONS_LEN][10] = {"HTTP/1.1","HTTP/2"};
+const char *http_methods[HTTP_METHODS_LEN] = {"GET", "HEAD", "POST", "PUT", "DELETE", "CONNECT", "OPTIONS", "TRACE","PATCH"};
+const char *http_versions[HTTP_VERSIONS_LEN] = {"HTTP/1.1","HTTP/2"};
 regex_t uri_regex;
 
 
