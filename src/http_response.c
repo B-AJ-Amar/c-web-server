@@ -1,18 +1,3 @@
-/*
-
-<HTTP-Version> <Status-Code> <Reason-Phrase>\r\n
-<Header-Name>: <Header-Value>\r\n
-<Header-Name>: <Header-Value>\r\n
-...\r\n
-\r\n
-<Body>
-
-
-
-headers:
-server , date , conent-len , content-type  keep-alive(false)
-*/
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

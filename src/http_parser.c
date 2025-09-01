@@ -1,30 +1,3 @@
-/*
-http requst syntax
-
-<method> <request-target> <HTTP-version>\r\n
-Header-Name: value\r\n
-Header-Name: value\r\n
-\r\n
-[Optional body]
-
-
-e.g get (without body)
-GET /index.html HTTP/1.1\r\n
-Host: www.example.com\r\n
-User-Agent: curl/7.68.0\r\n
-Accept: application/json\r\n
-\r\n
-
-with body
-POST /login HTTP/1.1\r\n
-Host: www.example.com\r\n
-Content-Type: application/x-www-form-urlencoded\r\n
-Content-Length: 27\r\n
-\r\n
-username=john&password=1234
-
-
-*/
 #include <netinet/in.h>
 #include <regex.h>
 #include <stdio.h>
