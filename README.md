@@ -4,13 +4,13 @@ A lightweight web server written in C, built from scratch to understand how netw
 
 ## Roadmap / To-Do List
 
-1. **Basic Server**
+- **Basic Server**
 
    [x] Create a simple TCP server that listens on a port.
    
    [x] Respond with a fixed static response (e.g., "Hello, World!").
 
-3. **Serve Static Files & Logging**
+- **Serve Static Files & Logging**
 
    [x] Add ability to serve static files (HTML, CSS, images).
    
@@ -18,22 +18,24 @@ A lightweight web server written in C, built from scratch to understand how netw
      
    * add basic configuration file support.
 
-5. **Multi-Threading Support**
+   * fix buffer overflow issues (send/recive big files).
+
+- **Multi-Threading Support**
 
    * Enable the server to handle multiple clients concurrently using threads or worker processes.
 
-6. **Security & HTTPS**
+- **Security & HTTPS**
 
    * Add basic security checks and input validation.
    * Implement TLS/SSL support for HTTPS.
 
 
-5. **Dynamic Content (PHP Support)**
+- **Dynamic Content (PHP Support)**
 
    * Integrate with a PHP interpreter to handle dynamic web pages.
    * Support executing PHP scripts and returning the output.
 
-6. **Proxy Features**
+- **Proxy Features**
 
    * Add reverse proxy capabilities to forward requests to other applications (Node.js, Python, Java, etc.).
 
