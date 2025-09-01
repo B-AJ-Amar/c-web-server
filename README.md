@@ -13,19 +13,20 @@ A lightweight web server written in C, built from scratch to understand how netw
 3. **Serve Static Files & Logging**
 
    [x] Add ability to serve static files (HTML, CSS, images).
+   
    * Implement a basic logging system to track requests and responses.
+     
    * add basic configuration file support.
 
-4. **Multi-Threading Support**
+5. **Multi-Threading Support**
 
    * Enable the server to handle multiple clients concurrently using threads or worker processes.
 
-5. **Security & HTTPS**
+6. **Security & HTTPS**
 
    * Add basic security checks and input validation.
    * Implement TLS/SSL support for HTTPS.
 
-**I am Not Sure if i can make this 🙂**
 
 5. **Dynamic Content (PHP Support)**
 
