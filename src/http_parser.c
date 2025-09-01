@@ -34,12 +34,10 @@ username=john&password=1234
 
 #include "http_parser.h"
 
-
-const char *http_methods[HTTP_METHODS_LEN] = {"GET", "HEAD", "POST", "PUT", "DELETE", "CONNECT", "OPTIONS", "TRACE","PATCH"};
-const char *http_versions[HTTP_VERSIONS_LEN] = {"HTTP/1.1","HTTP/2"};
 regex_t uri_regex;
 
-
+const char *http_methods[HTTP_METHODS_LEN] = {"GET", "HEAD", "POST", "PUT", "DELETE", "CONNECT", "OPTIONS", "TRACE","PATCH"};
+const char *http_versions[HTTP_VERSIONS_LEN] = {"HTTP/1.0","HTTP/1.1","HTTP/2"};
 void validate_http_method(char *method, http_request *request){
     for (int i = 0; i < HTTP_METHODS_LEN; i++) if (strcmp(method,http_methods[i]) == 0) return; 
     printf("[validate_http_method] error");
@@ -66,9 +64,11 @@ void free_uri_regex() {
 }
 
 void validate_uri(char *uri, http_request *request) {
-    if ( regexec(&uri_regex, uri, 0, NULL, 0) == 0) request->is_invalid = 1;
+    if (regexec(&uri_regex, uri, 0, NULL, 0) != 0) {
+        printf("[validate_uri] error: invalid URI %s\n", uri);
+        request->is_invalid = 1;
+    }
 }
-
 void parse_request_line(char *line, http_request *request) {
     sscanf(line, "%s %s %s", request->method, request->uri, request->version);
     validate_http_method(request->method,request);

@@ -77,4 +77,6 @@ static const struct http_status http_statuses[] = {
 
 static const int http_statuses_count = sizeof(http_statuses) / sizeof(http_statuses[0]);
 
+const char* get_reason_phrase(int code);
+
 #endif // HTTP_STATUS_H

@@ -22,3 +22,6 @@ run: $(TARGET)
 
 clean:
 	rm -rf build bin
+
+# rebuild & run
+rbr: clean all run

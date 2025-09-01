@@ -12,8 +12,8 @@
 #define BUFFER_SIZE 4096
 
 #define HTTP_RESPONSE_DEMO "HTTP/1.1 200 OK\r\nContent-Length: 13\r\n\r\nHello client!"
-#define HTTP_RESPONSE_404  "HTTP/1.1 404 OK\r\nContent-Length: 9\r\n\r\n Not Found"
-#define HTTP_RESPONSE_500  "HTTP/1.1 500 OK\r\nContent-Length: 21\r\n\r\nInternal Server Error"
+#define HTTP_RESPONSE_404  "HTTP/1.1 404 Not Found\r\nContent-Length: 9\r\n\r\nNot Found"
+#define HTTP_RESPONSE_500  "HTTP/1.1 500 Internal Server Error\r\nContent-Length: 21\r\n\r\nInternal Server Error"
 
 void init_serv(){
     if (!init_uri_regex()) exit(EXIT_FAILURE);
@@ -77,6 +77,8 @@ int main(){
         printf("New Message : \n\n%s\n===================================\n",buffer);
 
         printf("parsing the http request ...\n");
+        
+        memset(&http_req, 0, sizeof(http_req));
 
         parse_http_request(buffer,&http_req);
 
