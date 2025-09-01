@@ -7,12 +7,11 @@
 #include <unistd.h>
 
 #include "http_parser.h"
+#include "http_response.h"
 
 #define PORT        8080
 #define BUFFER_SIZE 4096
 
-#define HTTP_RESPONSE_DEMO "HTTP/1.1 200 OK\r\nContent-Length: 13\r\n\r\nHello client!"
-#define HTTP_RESPONSE_404  "HTTP/1.1 404 Not Found\r\nContent-Length: 9\r\n\r\nNot Found"
 #define HTTP_RESPONSE_500                                                                          \
     "HTTP/1.1 500 Internal Server Error\r\nContent-Length: "                                       \
     "21\r\n\r\nInternal Server Error"
@@ -35,8 +34,7 @@ int main() {
     char               buffer[BUFFER_SIZE];
     int                serv_sock, client_sock;
 
-    http_request http_req;
-
+    
     serv_sock = socket(AF_INET, SOCK_STREAM, 0);
     if (serv_sock < 0) {
         perror("socket failed");
@@ -49,7 +47,7 @@ int main() {
         perror("setsockopt failed");
         exit(EXIT_FAILURE);
     }
-
+    
     memset(&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin_family      = AF_INET;
     serv_addr.sin_addr.s_addr = INADDR_ANY; // Any local IP
@@ -78,8 +76,9 @@ int main() {
 
         printf("parsing the http request ...\n");
 
+        http_request http_req;
         memset(&http_req, 0, sizeof(http_req));
-
+        
         parse_http_request(buffer, &http_req);
 
         if (http_req.is_invalid == 0) {
@@ -89,8 +88,13 @@ int main() {
             printf("headers count: %d \n", http_req.headers_count);
 
             printf("quary_params_count : %d \n", http_req.quary_params_count);
+            http_response http_res;
+            memset(&http_res, 0, sizeof(http_res));
+            generateFileResponse(&http_req,&http_res);
 
-            write(client_sock, HTTP_RESPONSE_DEMO, strlen(HTTP_RESPONSE_DEMO));
+            char* response = parseResponse(&http_res);
+
+            write(client_sock, response, strlen(response));
 
         } else {
             printf("something went wrong\n");
