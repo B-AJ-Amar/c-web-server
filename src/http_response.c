@@ -69,7 +69,6 @@ void generateFileResponse(http_request *req, http_response *res) {
     size_t file_size;
     int    status;
     char  *content = read_file(file_path, &file_size, &status);
-    free(file_path);
 
     char *reason = (char *)get_reason_phrase(status);
     if (status == 200) {
@@ -86,6 +85,8 @@ void generateFileResponse(http_request *req, http_response *res) {
     res->reason  = reason;
     res->version = req->version;
     res->date    = get_http_date();
+
+    free(file_path);
 }
 
 char *parseResponse(http_response *res) {
