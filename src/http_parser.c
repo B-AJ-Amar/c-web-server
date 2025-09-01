@@ -25,30 +25,35 @@ username=john&password=1234
 
 
 */
+#include <netinet/in.h>
+#include <regex.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <netinet/in.h>
-#include <regex.h>
 
 #include "http_parser.h"
 
 regex_t uri_regex;
 
-const char *http_methods[HTTP_METHODS_LEN] = {"GET", "HEAD", "POST", "PUT", "DELETE", "CONNECT", "OPTIONS", "TRACE","PATCH"};
-const char *http_versions[HTTP_VERSIONS_LEN] = {"HTTP/1.0","HTTP/1.1","HTTP/2"};
-void validate_http_method(char *method, http_request *request){
-    for (int i = 0; i < HTTP_METHODS_LEN; i++) if (strcmp(method,http_methods[i]) == 0) return; 
+const char *http_methods[HTTP_METHODS_LEN]   = {"GET",     "HEAD",    "POST",  "PUT",  "DELETE",
+                                                "CONNECT", "OPTIONS", "TRACE", "PATCH"};
+const char *http_versions[HTTP_VERSIONS_LEN] = {"HTTP/1.0", "HTTP/1.1", "HTTP/2"};
+
+void validate_http_method(char *method, http_request *request) {
+    for (int i = 0; i < HTTP_METHODS_LEN; i++)
+        if (strcmp(method, http_methods[i]) == 0)
+            return;
     printf("[validate_http_method] error");
-    request->is_invalid = 1; 
+    request->is_invalid = 1;
 }
 
-void validate_http_version(char *version, http_request *request){
-    for (int i = 0; i < HTTP_VERSIONS_LEN; i++) if (strcmp(version,http_versions[i]) == 0) return;
+void validate_http_version(char *version, http_request *request) {
+    for (int i = 0; i < HTTP_VERSIONS_LEN; i++)
+        if (strcmp(version, http_versions[i]) == 0)
+            return;
     printf("[validate_http_version] error");
     request->is_invalid = 1;
-    
 }
 
 int init_uri_regex() {
@@ -59,9 +64,7 @@ int init_uri_regex() {
     return 1;
 }
 
-void free_uri_regex() {
-    regfree(&uri_regex);
-}
+void free_uri_regex() { regfree(&uri_regex); }
 
 void validate_uri(char *uri, http_request *request) {
     if (regexec(&uri_regex, uri, 0, NULL, 0) != 0) {
@@ -71,11 +74,13 @@ void validate_uri(char *uri, http_request *request) {
 }
 void parse_request_line(char *line, http_request *request) {
     sscanf(line, "%s %s %s", request->method, request->uri, request->version);
-    validate_http_method(request->method,request);
-    if (request->is_invalid) return;
-    validate_http_version(request->version,request); 
-    if (request->is_invalid) return;
-    validate_uri(request->uri,request);
+    validate_http_method(request->method, request);
+    if (request->is_invalid)
+        return;
+    validate_http_version(request->version, request);
+    if (request->is_invalid)
+        return;
+    validate_uri(request->uri, request);
 }
 
 void parse_quary_param(char *line, http_quary_params *quary) {
@@ -88,8 +93,8 @@ void parse_quary_param(char *line, http_quary_params *quary) {
 }
 
 void parse_request_uri(http_request *request) {
-    char *uri = request->uri;
-    request->quary = NULL;
+    char *uri                   = request->uri;
+    request->quary              = NULL;
     request->quary_params_count = 0;
 
     char *query_separator = strchr(uri, '?');
@@ -103,20 +108,16 @@ void parse_request_uri(http_request *request) {
 
         char *param = strtok(query_params, "&");
         while (param != NULL) {
-            request->quary = realloc(
-                request->quary,
-                sizeof(http_quary_params) * (request->quary_params_count + 1)
-            );
+            request->quary = realloc(request->quary,
+                                     sizeof(http_quary_params) * (request->quary_params_count + 1));
             parse_quary_param(param, &request->quary[request->quary_params_count]);
             request->quary_params_count++;
-            param = strtok(NULL, "&"); 
+            param = strtok(NULL, "&");
         }
     } else {
         strncpy(request->endpoint, uri, sizeof(request->endpoint));
     }
 }
-
- 
 
 void parse_header_line(char *line, http_headers *header) {
     char *colon = strchr(line, ':');
@@ -125,29 +126,29 @@ void parse_header_line(char *line, http_headers *header) {
         strncpy(header->key, line, sizeof(header->key));
         strncpy(header->value, colon + 1, sizeof(header->value));
         // fix the spaces issue
-        while (*header->value == ' ') memmove(header->value, header->value + 1, strlen(header->value));
+        while (*header->value == ' ')
+            memmove(header->value, header->value + 1, strlen(header->value));
     }
 }
 
 void parse_http_request(char *request_text, http_request *request) {
-    request->is_invalid = 0;
-    request->headers = NULL;
+    request->is_invalid    = 0;
+    request->headers       = NULL;
     request->headers_count = 0;
 
     char *line = strtok(request_text, "\r\n");
     if (line) {
         parse_request_line(line, request);
-        if (request->is_invalid) return;   
-    }
-    else
-    {
+        if (request->is_invalid)
+            return;
+    } else {
         request->is_invalid = 1;
         return;
     }
 
-    
     while ((line = strtok(NULL, "\r\n")) && strlen(line) > 0) {
-        request->headers = realloc(request->headers, sizeof(http_headers) * (request->headers_count + 1));
+        request->headers =
+            realloc(request->headers, sizeof(http_headers) * (request->headers_count + 1));
         parse_header_line(line, &request->headers[request->headers_count]);
         request->headers_count++;
     }
@@ -157,7 +158,6 @@ void parse_http_request(char *request_text, http_request *request) {
         body_start += 4; // skip \n\r\n\r
         strncpy(request->body, body_start, sizeof(request->body) - 1);
     }
-    
-    parse_request_uri(request);
 
+    parse_request_uri(request);
 }

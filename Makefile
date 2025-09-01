@@ -25,3 +25,7 @@ clean:
 
 # rebuild & run
 rbr: clean all run
+
+format:
+	find src include -name "*.c" -o -name "*.h" | xargs clang-format -i
+

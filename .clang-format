@@ -1,0 +1,15 @@
+BasedOnStyle: LLVM
+IndentWidth: 4
+UseTab: Never
+
+# Keep macro definitions clean
+AlignConsecutiveMacros: true
+AlignConsecutiveAssignments: true
+AlignConsecutiveDeclarations: true
+
+
+BreakBeforeBinaryOperators: None
+ColumnLimit: 100
+
+
+
