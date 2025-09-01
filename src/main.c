@@ -34,7 +34,6 @@ int main() {
     char               buffer[BUFFER_SIZE];
     int                serv_sock, client_sock;
 
-    
     serv_sock = socket(AF_INET, SOCK_STREAM, 0);
     if (serv_sock < 0) {
         perror("socket failed");
@@ -47,7 +46,7 @@ int main() {
         perror("setsockopt failed");
         exit(EXIT_FAILURE);
     }
-    
+
     memset(&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin_family      = AF_INET;
     serv_addr.sin_addr.s_addr = INADDR_ANY; // Any local IP
@@ -78,7 +77,7 @@ int main() {
 
         http_request http_req;
         memset(&http_req, 0, sizeof(http_req));
-        
+
         parse_http_request(buffer, &http_req);
 
         if (http_req.is_invalid == 0) {
@@ -90,9 +89,9 @@ int main() {
             printf("quary_params_count : %d \n", http_req.quary_params_count);
             http_response http_res;
             memset(&http_res, 0, sizeof(http_res));
-            generateFileResponse(&http_req,&http_res);
+            generateFileResponse(&http_req, &http_res);
 
-            char* response = parseResponse(&http_res);
+            char *response = parseResponse(&http_res);
 
             write(client_sock, response, strlen(response));
 
