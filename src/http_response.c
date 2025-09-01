@@ -21,6 +21,7 @@ server , date , conent-len , content-type  keep-alive(false)
 #include "http_parser.h"
 #include "http_status.h"
 #include "http_response.h"
+#include "file_handler.h"
 
 
 char* get_http_date() {
@@ -48,28 +49,39 @@ void set_content_type(http_response *res, const char *ext) {
     else res->content_type =  CONTENT_TYPES.txt;
 }
 
-void generateResponse(http_request* req,http_response* res,int status){
+
+void generateFileResponse(http_request* req, http_response *res){
+
+    char* file_path = get_file_path(req->uri);
+    if (!file_path) {
+        res->status = HTTP_INTERNAL_SERVER_ERROR;
+        return;
+    }
+
+    size_t file_size;
+    int status;
+    char* content = read_file(file_path, &file_size, &status);
+    free(file_path);
+
+    char* reason = (char*)get_reason_phrase(status);
+    if (status == 200){
+        res->body = content;
+        res->content_len = file_size;
+        set_content_type(res, get_file_extension(file_path));
+    }
+    else {
+        res->body = reason;
+        res->content_len = strlen(res->body);
+        set_content_type(res, "txt");
+    }
+    
+    
     res->status = status;
-    res->reason = (char*)get_reason_phrase(status);
+    res->reason = reason;
     res->version = req->version;
     res->date = get_http_date();
 
 }
-
-
-void generateFileResponse(http_request* req, http_response *res){
-
-    // get the file based on the endpoint
-
-    // res->body = content;
-    // res->content_len = strlen(content);
-
-
-    // generateResponse(req, res, status);
-
-
-}
-
 
 
 char* parseResponse(http_response* res){

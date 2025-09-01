@@ -1,7 +1,7 @@
 #ifndef HTTP_RESPONSE_H
 #define HTTP_RESPONSE_H
 
-#define SERVER_NAME "MyWebServer"
+#define SERVER_NAME "CWS"
 
 typedef struct {
     const char *html;
@@ -26,4 +26,11 @@ static const ContentTypes CONTENT_TYPES = {
     .svg  = "image/svg+xml",
     .txt  = "text/plain"
 };
+
+char* get_http_date();
+void set_content_type(http_response *res, const char *ext);
+void generateFileResponse(http_request* req, http_response *res);
+char* parseResponse(http_response* res);
+
+
 #endif // HTTP_RESPONSE_H
