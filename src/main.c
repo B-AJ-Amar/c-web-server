@@ -8,6 +8,7 @@
 
 #include "http_parser.h"
 #include "http_response.h"
+#include "logger.h"
 
 #define PORT        8080
 #define BUFFER_SIZE 4096
@@ -18,6 +19,8 @@
 
 void init_serv() {
     if (!init_uri_regex())
+        exit(EXIT_FAILURE);
+    if (!init_logger(&lg, LOG_INFO, 1, NULL, NULL))
         exit(EXIT_FAILURE);
 }
 
@@ -33,6 +36,8 @@ int main() {
     struct sockaddr_in serv_addr;
     char               buffer[BUFFER_SIZE];
     int                serv_sock, client_sock;
+    struct sockaddr_in client_addr;
+    socklen_t          client_len = sizeof(client_addr);
 
     serv_sock = socket(AF_INET, SOCK_STREAM, 0);
     if (serv_sock < 0) {
@@ -59,34 +64,28 @@ int main() {
     }
 
     listen(serv_sock, 5);
-    printf("Server listening on port %d...\n", PORT);
+    log_message(&lg, LOG_INFO, "Server listening on port %d...", PORT);
     while (1) {
-        client_sock = accept(serv_sock, NULL, NULL);
+        client_sock = accept(serv_sock, (struct sockaddr *)&client_addr, &client_len);
 
         if (client_sock < 0) {
-            perror("ERROR on accept");
+            log_message(&lg, LOG_ERROR, "ERROR on accept");
             close(serv_sock);
             exit(1);
         }
 
         int n     = read(client_sock, buffer, sizeof(buffer));
         buffer[n] = '\0';
-        printf("New Message : \n\n%s\n===================================\n", buffer);
-
-        printf("parsing the http request ...\n");
 
         http_request http_req;
         memset(&http_req, 0, sizeof(http_req));
 
+        http_req.client_addr = &client_addr;
+
         parse_http_request(buffer, &http_req);
 
         if (http_req.is_invalid == 0) {
-            printf("parsed successfuly\n");
-            printf("method : %s , uri : %s , endpoint : %s \n", http_req.method, http_req.uri,
-                   http_req.endpoint);
-            printf("headers count: %d \n", http_req.headers_count);
 
-            printf("quary_params_count : %d \n", http_req.quary_params_count);
             http_response http_res;
             memset(&http_res, 0, sizeof(http_res));
             generateFileResponse(&http_req, &http_res);
@@ -95,8 +94,9 @@ int main() {
 
             write(client_sock, response, strlen(response));
 
+            http_log(&lg, &http_req, &http_res);
         } else {
-            printf("something went wrong\n");
+            log_message(&lg, LOG_ERROR, "something went wrong\n");
             write(client_sock, HTTP_RESPONSE_500, strlen(HTTP_RESPONSE_500));
         }
 

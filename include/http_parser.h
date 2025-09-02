@@ -5,6 +5,7 @@
 #define HTTP_VERSIONS_LEN 3
 #define URI_PATTERN       "^/[A-Za-z0-9._~!$&'()*+,;=:@/-]*(\\?[A-Za-z0-9._~!$&'()*+,;=:@/?-]*)?$"
 
+#include <netinet/in.h>
 #include <regex.h>
 
 extern const char *http_methods[HTTP_METHODS_LEN];
@@ -23,16 +24,17 @@ typedef struct http_quary_params {
 } http_quary_params;
 
 typedef struct http_request {
-    char               method[16];
-    char               uri[256];
-    char               version[8];
-    char               endpoint[256];
-    http_quary_params *quary;
-    http_headers      *headers;
-    int                headers_count;
-    int                quary_params_count;
-    char              *body;
-    int                is_invalid;
+    char                method[16];
+    char                uri[256];
+    char                version[8];
+    char                endpoint[256];
+    http_quary_params  *quary;
+    http_headers       *headers;
+    int                 headers_count;
+    int                 quary_params_count;
+    char               *body;
+    int                 is_invalid;
+    struct sockaddr_in *client_addr;
 } http_request;
 
 typedef struct http_response {

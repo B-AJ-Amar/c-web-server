@@ -14,7 +14,7 @@ A lightweight web server written in C, built from scratch to understand how netw
 
    [x] Add ability to serve static files (HTML, CSS, images).
    
-   * Implement a basic logging system to track requests and responses.
+   [X] Implement a basic logging system to track requests and responses.
      
    * add basic configuration file support.
 

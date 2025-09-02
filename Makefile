@@ -24,7 +24,7 @@ clean:
 	rm -rf build bin
 
 # rebuild & run
-rbr: clean all run
+cbr: clean all run
 
 format:
 	find src include -name "*.c" -o -name "*.h" | xargs clang-format -i
