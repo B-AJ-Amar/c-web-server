@@ -2,6 +2,7 @@
 #define LOGGER_H
 
 #include "http_parser.h"
+#include <stdio.h>
 
 #define COLOR_RESET  "\033[0m"
 #define COLOR_GREEN  "\033[32m" // success/info

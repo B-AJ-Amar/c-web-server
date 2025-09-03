@@ -3,9 +3,9 @@
 
 #include "http_parser.h"
 #include "logger.h"
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-
 typedef struct {
     char *host;
     int   port;
@@ -35,6 +35,8 @@ typedef struct {
     logging_config logging;
     route_config  *routes;
 } app_config;
+
+extern app_config cfg;
 
 int load_config(const char *filename, app_config *cfg);
 

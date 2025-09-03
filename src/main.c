@@ -6,6 +6,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+#include "config.h"
 #include "http_parser.h"
 #include "http_response.h"
 #include "logger.h"
@@ -18,9 +19,15 @@
     "21\r\n\r\nInternal Server Error"
 
 void init_serv() {
+
     if (!init_uri_regex())
         exit(EXIT_FAILURE);
+        
     if (!init_logger(&lg, LOG_INFO, 1, NULL, NULL))
+        exit(EXIT_FAILURE);
+
+    log_message(&lg,LOG_INFO,"loading config ...");
+    if (!load_config("./cws.conf", &cfg))
         exit(EXIT_FAILURE);
 }
 
