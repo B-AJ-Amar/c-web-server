@@ -31,5 +31,6 @@ char *get_http_date();
 void  set_content_type(http_response *res, const char *ext);
 void generateFileResponse(http_request *req, http_response *res,route_config router);
 char *parseResponse(http_response *res);
+int send_status_response(int client_sock, int status_code);
 
 #endif // HTTP_RESPONSE_H

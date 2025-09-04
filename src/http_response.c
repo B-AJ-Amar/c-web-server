@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <unistd.h>
 
 #include "file_handler.h"
 #include "http_parser.h"
@@ -90,3 +91,50 @@ char *parseResponse(http_response *res) {
     sprintf(response + strlen(response), "\r\n%s", res->body);
     return response;
 }
+
+int send_status_response(int client_sock, int status_code) {
+    const char *reason_phrase = get_reason_phrase(status_code);
+    if (!reason_phrase) {
+        log_message(&lg, LOG_ERROR, "[send_status_response] Invalid status code: %d", status_code);
+        return 0;
+    }
+    
+    char *date = get_http_date();
+    if (!date) {
+        log_message(&lg, LOG_ERROR, "[send_status_response] Failed to get current date");
+        return 0;
+    }
+    
+    char response[512];
+    int response_len = snprintf(response, sizeof(response),
+        "HTTP/1.1 %d %s\r\n"
+        "Server: %s\r\n"
+        "Date: %s\r\n"
+        "Content-Length: %zu\r\n"
+        "Content-Type: text/plain\r\n"
+        "\r\n"
+        "%s",
+        status_code, reason_phrase,
+        SERVER_NAME,
+        date,
+        strlen(reason_phrase),
+        reason_phrase
+    );
+    
+    free(date);
+    
+    if (response_len < 0 || response_len >= (int)sizeof(response)) {
+        log_message(&lg, LOG_ERROR, "[send_status_response] Response too large or formatting error");
+        return 0;
+    }
+    
+    ssize_t bytes_sent = write(client_sock, response, response_len);
+    if (bytes_sent == -1 || bytes_sent != response_len) {
+        log_message(&lg, LOG_ERROR, "[send_status_response] Write error or incomplete write");
+        return 0;
+    }
+    
+    return 1;  // Success
+}
+
+

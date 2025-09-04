@@ -15,11 +15,6 @@
 
 #define DEFAULT_TIME_FORMAT "%Y-%m-%d %H:%M:%S"
 
-static const char *level_names[] = {"TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL"};
-
-static const char *level_colors[] = {COLOR_CYAN,   COLOR_MAGENTA, COLOR_GREEN,
-                                     COLOR_YELLOW, COLOR_RED,     COLOR_RED};
-
 typedef enum { LOG_TRACE, LOG_DEBUG, LOG_INFO, LOG_WARN, LOG_ERROR, LOG_FATAL } log_level;
 
 typedef struct {

@@ -17,7 +17,7 @@
     "21\r\n\r\nInternal Server Error"
 
 #define HTTP_RESPONSE_404 "HTTP/1.1 404 Not Found\r\nContent-Length: 9\r\n\r\nNot Found"
-
+#define HTTP_RESPONSE_502 "HTTP/1.1 502 Bad Gateway\r\nContent-Length: 11\r\n\r\nBad Gateway"
 void init_serv() {
 
     if (!init_uri_regex())
@@ -26,6 +26,14 @@ void init_serv() {
     if (!load_config("./cws.conf", &cfg))
     exit(EXIT_FAILURE);
 
+    for (int i = 0; cfg.routes[i].path != NULL; i++) {
+        if (cfg.routes[i].proxy_pass != NULL){
+            if (!parse_proxy(&cfg.routes[i])) {
+                exit(EXIT_FAILURE);
+            }
+        }
+    }
+
     if (!init_logger(&lg, cfg.logging.level, 1, NULL, NULL))
         exit(EXIT_FAILURE);
 }
@@ -33,6 +41,8 @@ void init_serv() {
 void kill_serv(int serv_sock) {
     free_uri_regex();
     close(serv_sock);
+    if (cfg.logging.output && cfg.logging.output != stdout && cfg.logging.output != stderr)
+        fclose(cfg.logging.output);
 }
 
 int main() {
@@ -102,9 +112,16 @@ int main() {
                 continue;
             }
             else{
+                // handel allowed methods
                 if (cfg.routes[route_index].proxy_pass != NULL)
                 {
-                    // TODO: proxy_handler
+                    int status = handle_proxy(client_sock,&cfg.routes[route_index],buffer);
+
+                    if (status != 0)
+                    {
+                        log_message(&lg, LOG_WARN, "Bad Gateway to %s", cfg.routes[route_index].proxy_pass);
+                        write(client_sock, HTTP_RESPONSE_502, strlen(HTTP_RESPONSE_502));
+                    }
                 }
                 else
                 {

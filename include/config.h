@@ -6,6 +6,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "proxy.h"
 typedef struct {
     char *host;
     int   port;
@@ -14,20 +15,22 @@ typedef struct {
     char *default_index_name;
 } server_config;
 
-typedef struct {
+typedef struct logging_config {
     log_level level;
     bool      use_colors;
     char     *time_format;
     FILE     *output; // stdout, stderr, or file
 } logging_config;
 
-typedef struct {
+typedef struct route_config {
     char  *path;       // "/" , "/static" , "/api" ....
     char  *root;       //  "./public"
     char  *index;      // default file (e.g. "index.html")
     char  *proxy_pass; // TODO: backend URL (e.g "http://127.0.0.1:5000")
     bool   autoindex;  // true = list directory, false = no
     char **methods;    // allowed methods { "GET", "POST" }
+
+    proxy_info *proxy;
 } route_config;
 
 typedef struct {

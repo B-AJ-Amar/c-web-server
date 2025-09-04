@@ -210,7 +210,7 @@ int load_config(const char *filename, app_config *cfg) {
     // [[routes]]
     int n_routes = toml_array_nelem(toml_array_in(conf, "routes"));
     if (n_routes > 0) {
-        cfg->routes = calloc(n_routes, sizeof(route_config));
+        cfg->routes = calloc(n_routes + 1, sizeof(route_config)); // +1 for NULL terminator
         for (int i = 0; i < n_routes; i++) {
             toml_table_t *r = toml_table_at(toml_array_in(conf, "routes"), i);
             if (!r)
