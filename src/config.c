@@ -66,6 +66,18 @@ static int validate_proxy_pass(const char *url) {
     return 0;
 }
 
+static void sort_paths_by_longer(route_config *routes){
+    for(int i=0; routes[i].path != NULL; i++){
+        for(int j=i+1; routes[j].path != NULL; j++){
+            if(strlen(routes[i].path) < strlen(routes[j].path)){
+                route_config temp = routes[i];
+                routes[i] = routes[j];
+                routes[j] = temp;
+            }
+        }
+    }
+}
+
 static int validate_route_config(route_config *rc, server_config *srv) {
     if (!rc->path || rc->path[0] != '/') {
         log_message(&lg, LOG_FATAL, "Invalid route path: must start with '/'");
@@ -269,8 +281,31 @@ int load_config(const char *filename, app_config *cfg) {
                 return 0;
             }
         }
+
+        sort_paths_by_longer(cfg->routes);
     }
 
     toml_free(conf);
     return 1;
+}
+
+
+
+int path_router(route_config *routes, http_request *req) {
+    if (!routes)
+        return -1;
+
+    for (int i = 0; routes[i].path != NULL; i++) {
+        size_t route_path_len = strlen(routes[i].path);
+        log_message(&lg, LOG_TRACE, "Comparing request endpoint '%s' with route path '%s'", req->endpoint,
+                    routes[i].path);
+        if (strncmp(req->endpoint, routes[i].path, route_path_len) == 0) {
+            log_message(&lg, LOG_DEBUG, "Matched route '%s' for request endpoint '%s'", routes[i].path,
+                        req->endpoint);
+            return i;
+            
+        }
+    }
+
+    return -1;
 }

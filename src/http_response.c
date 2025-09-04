@@ -7,6 +7,7 @@
 #include "http_parser.h"
 #include "http_response.h"
 #include "http_status.h"
+#include "config.h"
 
 char *get_http_date() {
     time_t    now = time(NULL);
@@ -43,9 +44,10 @@ void set_content_type(http_response *res, const char *ext) {
         res->content_type = CONTENT_TYPES.txt;
 }
 
-void generateFileResponse(http_request *req, http_response *res) {
+void generateFileResponse(http_request *req, http_response *res,route_config router) {
 
-    char *file_path = get_file_path(req->uri);
+    char *file_path = get_file_path(req->uri,router);
+    log_message(&lg, LOG_DEBUG, "Resolved file path: %s", file_path);
     if (!file_path) {
         res->status = HTTP_INTERNAL_SERVER_ERROR;
         return;

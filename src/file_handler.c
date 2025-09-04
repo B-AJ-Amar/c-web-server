@@ -6,30 +6,40 @@
 
 #include "file_handler.h"
 #include "http_status.h"
+#include "config.h"
 
-char *get_file_path(const char *uri) {
-    char  *final_uri = NULL;
-    size_t uri_len   = strlen(uri);
-
-    if (uri_len > 0 && uri[uri_len - 1] == '/') {
-        size_t new_uri_len = uri_len + strlen("index.html");
-        final_uri          = malloc(new_uri_len + 1);
+char *get_file_path(const char *uri, route_config router) {
+    char *final_uri = NULL;
+    const char *index_file = router.index;
+    const char *files_root = router.root;
+    const char *route_path = router.path;
+    
+    const char *relative_path = uri;
+    size_t route_path_len = strlen(route_path);
+    
+    if (strncmp(uri, route_path, route_path_len) == 0) {
+        relative_path = uri + route_path_len;
+    }
+    
+    if (strlen(relative_path) == 0 || relative_path[strlen(relative_path) - 1] == '/') {
+        size_t new_uri_len = strlen(relative_path) + strlen(index_file);
+        final_uri = malloc(new_uri_len + 1);
         if (!final_uri)
             return NULL;
-        sprintf(final_uri, "%sindex.html", uri);
+        sprintf(final_uri, "%s%s", relative_path, index_file);
     } else {
-        final_uri = strdup(uri);
+        final_uri = strdup(relative_path);
         if (!final_uri)
             return NULL;
     }
 
-    size_t path_len  = strlen(DEFAULT_FILES_ROOT) + strlen(final_uri);
-    char  *file_path = malloc(path_len + 1);
+    size_t path_len = strlen(files_root) + strlen(final_uri);
+    char *file_path = malloc(path_len + 1);
     if (!file_path) {
         free(final_uri);
         return NULL;
     }
-    sprintf(file_path, "%s%s", DEFAULT_FILES_ROOT, final_uri);
+    sprintf(file_path, "%s/%s", files_root, final_uri);
     free(final_uri);
     return file_path;
 }

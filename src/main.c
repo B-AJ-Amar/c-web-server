@@ -16,16 +16,17 @@
     "HTTP/1.1 500 Internal Server Error\r\nContent-Length: "                                       \
     "21\r\n\r\nInternal Server Error"
 
+#define HTTP_RESPONSE_404 "HTTP/1.1 404 Not Found\r\nContent-Length: 9\r\n\r\nNot Found"
+
 void init_serv() {
 
     if (!init_uri_regex())
         exit(EXIT_FAILURE);
 
-    if (!init_logger(&lg, LOG_INFO, 1, NULL, NULL))
-        exit(EXIT_FAILURE);
-
-    log_message(&lg, LOG_INFO, "loading config ...");
     if (!load_config("./cws.conf", &cfg))
+    exit(EXIT_FAILURE);
+
+    if (!init_logger(&lg, cfg.logging.level, 1, NULL, NULL))
         exit(EXIT_FAILURE);
 }
 
@@ -40,7 +41,7 @@ int main() {
 
     struct sockaddr_in serv_addr;
     char               buffer[cfg.server.sock_buffer_size];
-    int                serv_sock, client_sock;
+    int                serv_sock, client_sock, route_index;
     struct sockaddr_in client_addr;
     socklen_t          client_len = sizeof(client_addr);
 
@@ -91,15 +92,39 @@ int main() {
 
         if (http_req.is_invalid == 0) {
 
-            http_response http_res;
-            memset(&http_res, 0, sizeof(http_res));
-            generateFileResponse(&http_req, &http_res);
+            route_index = path_router(cfg.routes, &http_req);
+            
+            if (route_index == -1) {
+                // todo :  make it more clear
+                log_message(&lg, LOG_WARN, "No matching route for %s", http_req.endpoint);
+                write(client_sock, HTTP_RESPONSE_404, strlen(HTTP_RESPONSE_404));
+                close(client_sock);
+                continue;
+            }
+            else{
+                if (cfg.routes[route_index].proxy_pass != NULL)
+                {
+                    // TODO: proxy_handler
+                }
+                else
+                {
+                    
+                    http_response http_res;
+                    memset(&http_res, 0, sizeof(http_res));
+                    generateFileResponse(&http_req, &http_res,cfg.routes[route_index]);
 
-            char *response = parseResponse(&http_res);
+                    char *response = parseResponse(&http_res);
 
-            write(client_sock, response, strlen(response));
+                    write(client_sock, response, strlen(response));
 
-            http_log(&lg, &http_req, &http_res);
+                    http_log(&lg, &http_req, &http_res);
+                }
+                
+                
+
+            }
+
+
         } else {
             log_message(&lg, LOG_ERROR, "something went wrong\n");
             write(client_sock, HTTP_RESPONSE_500, strlen(HTTP_RESPONSE_500));

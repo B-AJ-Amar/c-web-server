@@ -3,6 +3,8 @@
 
 #define SERVER_NAME "CWS"
 
+#include "config.h"
+
 typedef struct {
     const char *html;
     const char *css;
@@ -27,7 +29,7 @@ static const ContentTypes CONTENT_TYPES = {.html = "text/html",
 
 char *get_http_date();
 void  set_content_type(http_response *res, const char *ext);
-void  generateFileResponse(http_request *req, http_response *res);
+void generateFileResponse(http_request *req, http_response *res,route_config router);
 char *parseResponse(http_response *res);
 
 #endif // HTTP_RESPONSE_H
