@@ -1,3 +1,4 @@
+#include <arpa/inet.h>
 #include <netinet/in.h>
 #include <regex.h>
 #include <stdio.h>
@@ -11,9 +12,6 @@
 #include "http_response.h"
 #include "logger.h"
 
-#define PORT        8080
-#define BUFFER_SIZE 4096
-
 #define HTTP_RESPONSE_500                                                                          \
     "HTTP/1.1 500 Internal Server Error\r\nContent-Length: "                                       \
     "21\r\n\r\nInternal Server Error"
@@ -22,11 +20,11 @@ void init_serv() {
 
     if (!init_uri_regex())
         exit(EXIT_FAILURE);
-        
+
     if (!init_logger(&lg, LOG_INFO, 1, NULL, NULL))
         exit(EXIT_FAILURE);
 
-    log_message(&lg,LOG_INFO,"loading config ...");
+    log_message(&lg, LOG_INFO, "loading config ...");
     if (!load_config("./cws.conf", &cfg))
         exit(EXIT_FAILURE);
 }
@@ -41,7 +39,7 @@ int main() {
     init_serv();
 
     struct sockaddr_in serv_addr;
-    char               buffer[BUFFER_SIZE];
+    char               buffer[cfg.server.sock_buffer_size];
     int                serv_sock, client_sock;
     struct sockaddr_in client_addr;
     socklen_t          client_len = sizeof(client_addr);
@@ -61,8 +59,8 @@ int main() {
 
     memset(&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin_family      = AF_INET;
-    serv_addr.sin_addr.s_addr = INADDR_ANY; // to change : inet_addr("from config file")
-    serv_addr.sin_port        = htons(PORT);
+    serv_addr.sin_addr.s_addr = inet_addr(cfg.server.host);
+    serv_addr.sin_port        = htons(cfg.server.port);
 
     if (bind(serv_sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
         perror("ERROR on binding");
@@ -70,8 +68,8 @@ int main() {
         exit(1);
     }
 
-    listen(serv_sock, 5);
-    log_message(&lg, LOG_INFO, "Server listening on port %d...", PORT);
+    listen(serv_sock, cfg.server.max_connections);
+    log_message(&lg, LOG_INFO, "Server listening on port %d...", cfg.server.port);
     while (1) {
         client_sock = accept(serv_sock, (struct sockaddr *)&client_addr, &client_len);
 

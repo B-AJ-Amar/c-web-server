@@ -1,6 +1,8 @@
 #include "config.h"
 #include "logger.h"
 #include "toml.h"
+#include <arpa/inet.h>
+#include <regex.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -34,6 +36,78 @@ static FILE *parse_output(const char *s) {
     return f ? f : stdout;
 }
 
+static int validate_ip(const char *ip) {
+    struct in_addr addr;
+    return inet_pton(AF_INET, ip, &addr) == 1;
+}
+
+static int validate_proxy_pass(const char *url) {
+    if (!url)
+        return 0;
+
+    regex_t     regex;
+    const char *pattern = "^(http|https)://([a-zA-Z0-9._-]+|\\[[0-9a-fA-F:]+\\])(:[0-9]{1,5})?$";
+
+    if (regcomp(&regex, pattern, REG_EXTENDED | REG_NOSUB) != 0)
+        return 0;
+
+    int result = regexec(&regex, url, 0, NULL, 0);
+    regfree(&regex);
+
+    if (result == 0) {
+        const char *colon = strrchr(url, ':');
+        if (colon && strstr(url, "://") != colon - 5) {
+            int port = atoi(colon + 1);
+            if (port <= 0 || port > 65535)
+                return 0;
+        }
+        return 1;
+    }
+    return 0;
+}
+
+static int validate_route_config(route_config *rc, server_config *srv) {
+    if (!rc->path || rc->path[0] != '/') {
+        log_message(&lg, LOG_FATAL, "Invalid route path: must start with '/'");
+        return 0;
+    }
+
+    if (rc->proxy_pass) {
+        if (!validate_proxy_pass(rc->proxy_pass)) {
+            log_message(&lg, LOG_FATAL, "Invalid proxy_pass URL in route '%s': %s", rc->path,
+                        rc->proxy_pass);
+            return 0;
+        }
+        if (rc->root || rc->index) {
+            log_message(&lg, LOG_WARN,
+                        "Route '%s' has proxy_pass defined, ignoring root/index/autoindex",
+                        rc->path);
+        }
+        return 1;
+    } else {
+        if (!rc->root) {
+            log_message(&lg, LOG_FATAL, "Route '%s' missing 'root' (or proxy_pass)", rc->path);
+            return 0;
+        }
+        if (!rc->index) {
+            rc->index = strdup(srv->default_index_name);
+        }
+    }
+
+    if (rc->methods) {
+        for (int i = 0; rc->methods[i]; i++) {
+            const char *m = rc->methods[i];
+            if (!(strcmp(m, "GET") == 0 || strcmp(m, "POST") == 0 || strcmp(m, "HEAD") == 0 ||
+                  strcmp(m, "PUT") == 0 || strcmp(m, "DELETE") == 0)) {
+                log_message(&lg, LOG_FATAL, "Invalid HTTP method '%s' in route '%s'", m, rc->path);
+                return 0;
+            }
+        }
+    }
+
+    return 1;
+}
+
 int load_config(const char *filename, app_config *cfg) {
     FILE *fp = fopen(filename, "r");
     if (!fp) {
@@ -62,27 +136,46 @@ int load_config(const char *filename, app_config *cfg) {
 
     cfg->routes = NULL;
 
-    // Parse [server]
+    // [server]
     toml_table_t *server = toml_table_in(conf, "server");
     if (server) {
         toml_datum_t s;
         if ((s = toml_string_in(server, "host")).ok) {
             free(cfg->server.host);
+            if (!validate_ip(s.u.s)) {
+                log_message(&lg, LOG_FATAL, "Invalid server.host: %s", s.u.s);
+                return 0;
+            }
             cfg->server.host = s.u.s;
         }
-        if ((s = toml_int_in(server, "port")).ok)
+        if ((s = toml_int_in(server, "port")).ok) {
+            if (s.u.i <= 0 || s.u.i > 65535) {
+                log_message(&lg, LOG_FATAL, "Invalid server.port: %lld", s.u.i);
+                return 0;
+            }
             cfg->server.port = (int)s.u.i;
-        if ((s = toml_int_in(server, "max_connections")).ok)
+        }
+        if ((s = toml_int_in(server, "max_connections")).ok) {
+            if (s.u.i <= 0) {
+                log_message(&lg, LOG_FATAL, "Invalid server.max_connections: %lld", s.u.i);
+                return 0;
+            }
             cfg->server.max_connections = (int)s.u.i;
-        if ((s = toml_int_in(server, "sock_buffer_size")).ok)
+        }
+        if ((s = toml_int_in(server, "sock_buffer_size")).ok) {
+            if (s.u.i <= 0) {
+                log_message(&lg, LOG_FATAL, "Invalid server.sock_buffer_size: %lld", s.u.i);
+                return 0;
+            }
             cfg->server.sock_buffer_size = (int)s.u.i;
+        }
         if ((s = toml_string_in(server, "default_index_name")).ok) {
             free(cfg->server.default_index_name);
             cfg->server.default_index_name = s.u.s;
         }
     }
 
-    // Parse [logging]
+    // [logging]
     toml_table_t *logging = toml_table_in(conf, "logging");
     if (logging) {
         toml_datum_t s;
@@ -102,7 +195,7 @@ int load_config(const char *filename, app_config *cfg) {
         }
     }
 
-    // Parse [[routes]]
+    // [[routes]]
     int n_routes = toml_array_nelem(toml_array_in(conf, "routes"));
     if (n_routes > 0) {
         cfg->routes = calloc(n_routes, sizeof(route_config));
@@ -112,21 +205,19 @@ int load_config(const char *filename, app_config *cfg) {
                 continue;
 
             route_config *rc = &cfg->routes[i];
-
-            rc->path       = NULL;
-            rc->root       = NULL;
-            rc->index      = NULL;
-            rc->proxy_pass = NULL;
-            rc->autoindex  = false;
-            rc->methods    = NULL; // null means all
+            rc->path         = NULL;
+            rc->root         = NULL;
+            rc->index        = NULL;
+            rc->proxy_pass   = NULL;
+            rc->autoindex    = false;
+            rc->methods      = NULL;
 
             toml_datum_t s;
 
             if ((s = toml_string_in(r, "path")).ok) {
                 rc->path = s.u.s;
             } else {
-                log_message(&lg, LOG_FATAL,
-                            "Config error: route at index %d is missing required 'path'", i);
+                log_message(&lg, LOG_FATAL, "Config error: route at index %d missing 'path'", i);
                 return 0;
             }
 
@@ -153,7 +244,6 @@ int load_config(const char *filename, app_config *cfg) {
                 }
             }
 
-            // Methods (optional, but must have at least 1 if specified)
             toml_array_t *methods = toml_array_in(r, "methods");
             if (methods) {
                 int n_methods = toml_array_nelem(methods);
@@ -173,6 +263,10 @@ int load_config(const char *filename, app_config *cfg) {
                         return 0;
                     }
                 }
+            }
+
+            if (!validate_route_config(rc, &cfg->server)) {
+                return 0;
             }
         }
     }
