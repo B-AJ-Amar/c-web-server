@@ -12,14 +12,11 @@
 #include "http_response.h"
 #include "logger.h"
 #include "middlewares.h"
+#include "sock.h"
 
-#define HTTP_RESPONSE_500                                                                          \
-    "HTTP/1.1 500 Internal Server Error\r\nContent-Length: "                                       \
-    "21\r\n\r\nInternal Server Error"
+#define BUFFER_SIZE 8192 
 
-#define HTTP_RESPONSE_404 "HTTP/1.1 404 Not Found\r\nContent-Length: 9\r\n\r\nNot Found"
-#define HTTP_RESPONSE_502 "HTTP/1.1 502 Bad Gateway\r\nContent-Length: 11\r\n\r\nBad Gateway"
-#define HTTP_RESPONSE_405 "HTTP/1.1 405 Method Not Allowed\r\nContent-Length: 18\r\n\r\nMethod Not Allowed"
+char files_buffer[8192];
 
 void init_serv() {
 
@@ -39,6 +36,9 @@ void init_serv() {
 
     if (!init_logger(&lg, cfg.logging.level, 1, NULL, NULL))
         exit(EXIT_FAILURE);
+
+    memset(files_buffer,0,sizeof(files_buffer));
+
 }
 
 void kill_serv(int serv_sock) {
@@ -109,14 +109,14 @@ int main() {
 
         parse_http_request(buffer, &http_req);
 
-        if (1) {
+        if (!http_req.is_invalid) {
 
             route_index = path_router(cfg.routes, http_req.endpoint);
             
             if (route_index == -1) {
                 // todo :  make it more clear
                 log_message(&lg, LOG_WARN, "No matching route for %s", http_req.endpoint);
-                write(client_sock, HTTP_RESPONSE_404, strlen(HTTP_RESPONSE_404));
+                send_404(client_sock);
                 close(client_sock);
                 continue;
             }
@@ -125,43 +125,37 @@ int main() {
                 if (!is_allowed)
                 {
                     log_message(&lg, LOG_WARN, "Method %s not allowed for %s", http_req.method, http_req.endpoint);
-                    write(client_sock, HTTP_RESPONSE_405, strlen(HTTP_RESPONSE_405));
+                    send_405(client_sock);
                     close(client_sock);
                     continue;
                 }
                 
                 if (cfg.routes[route_index].proxy_pass != NULL)
                 {
+                    log_message(&lg, LOG_INFO, "Serving %s for %s", cfg.routes[route_index].root, http_req.uri);
                     int status = handle_proxy(client_sock,&cfg.routes[route_index],buf2);
 
                     if (status != 0)
                     {
                         log_message(&lg, LOG_WARN, "Bad Gateway to %s", cfg.routes[route_index].proxy_pass);
-                        write(client_sock, HTTP_RESPONSE_502, strlen(HTTP_RESPONSE_502));
+                        send_502(client_sock);
                     }
                 }
                 else
-                {
-                    
-                    http_response http_res;
-                    memset(&http_res, 0, sizeof(http_res));
-                    generateFileResponse(&http_req, &http_res,cfg.routes[route_index]);
-
-                    char *response = parseResponse(&http_res);
-
-                    write(client_sock, response, strlen(response));
-
-                    http_log(&lg, &http_req, &http_res);
+                {   
+                    send_file_response(client_sock,&http_req,cfg.routes[route_index],files_buffer,BUFFER_SIZE);
                 }
                 
                 
-
             }
 
 
-        } else {
+        } 
+        else {
             log_message(&lg, LOG_ERROR, "something went wrong\n");
-            write(client_sock, HTTP_RESPONSE_500, strlen(HTTP_RESPONSE_500));
+            send_500(client_sock);
+            close(client_sock);
+            continue;
         }
 
         close(client_sock);

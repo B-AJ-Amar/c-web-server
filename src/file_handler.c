@@ -7,8 +7,10 @@
 #include "file_handler.h"
 #include "http_status.h"
 #include "config.h"
+#include "logger.h"
 
 char *get_file_path(const char *uri, route_config router) {
+
     char *final_uri = NULL;
     const char *index_file = router.index;
     const char *files_root = router.root;
@@ -41,6 +43,7 @@ char *get_file_path(const char *uri, route_config router) {
     }
     sprintf(file_path, "%s/%s", files_root, final_uri);
     free(final_uri);
+
     return file_path;
 }
 

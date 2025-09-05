@@ -17,20 +17,18 @@ typedef struct {
     const char *txt;
 } ContentTypes;
 
-static const ContentTypes CONTENT_TYPES = {.html = "text/html",
-                                           .css  = "text/css",
-                                           .js   = "application/javascript",
-                                           .json = "application/json",
-                                           .png  = "image/png",
-                                           .jpg  = "image/jpeg",
-                                           .gif  = "image/gif",
-                                           .svg  = "image/svg+xml",
-                                           .txt  = "text/plain"};
+static const ContentTypes CONTENT_TYPES = { .html = "text/html",
+                                            .css  = "text/css",
+                                            .js   = "application/javascript",
+                                            .json = "application/json",
+                                            .png  = "image/png",
+                                            .jpg  = "image/jpeg",
+                                            .gif  = "image/gif",
+                                            .svg  = "image/svg+xml",
+                                            .txt  = "text/plain"};
 
 char *get_http_date();
-void  set_content_type(http_response *res, const char *ext);
-void generateFileResponse(http_request *req, http_response *res,route_config router);
-char *parseResponse(http_response *res);
+int send_file_response(int client_sock, http_request *req,route_config router,char* buffer,int buffer_size);
 int send_status_response(int client_sock, int status_code);
 
 #endif // HTTP_RESPONSE_H
