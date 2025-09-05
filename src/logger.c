@@ -55,7 +55,7 @@ void log_message(logger *lg, log_level level, const char *fmt, ...) {
     fflush(lg->output);
 }
 
-void http_log(logger *lg, http_request *req, http_response *res) {
+void http_log(logger *lg, http_request *req, int status) {
     char ip[INET_ADDRSTRLEN];
     int  port = 0;
 
@@ -78,7 +78,7 @@ void http_log(logger *lg, http_request *req, http_response *res) {
     if (lg->use_colors) {
         if (strcmp(req->method, "GET") == 0)
             method_color = COLOR_GREEN;
-        else if (strcmp(req->method, "CONNET") == 0)
+        else if (strcmp(req->method, "CONNECT") == 0)
             method_color = COLOR_GREEN;
         else if (strcmp(req->method, "POST") == 0)
             method_color = COLOR_CYAN;
@@ -87,17 +87,16 @@ void http_log(logger *lg, http_request *req, http_response *res) {
         else
             method_color = COLOR_YELLOW;
 
-        if (res->status >= 200 && res->status < 300)
+        if (status >= 200 && status < 300)
             status_color = COLOR_GREEN;
-        else if (res->status >= 300 && res->status < 400)
+        else if (status >= 300 && status < 400)
             status_color = COLOR_CYAN;
-        else if (res->status >= 400 && res->status < 500)
+        else if (status >= 400 && status < 500)
             status_color = COLOR_YELLOW;
-        else if (res->status >= 500)
+        else if (status >= 500)
             status_color = COLOR_RED;
     }
 
-    fprintf(lg->output, "[%s] %s:%d \"%s%s%s %s %s\" %s%d%s %d\n", timebuf, ip, port, method_color,
-            req->method, reset, req->uri, req->version, status_color, res->status, reset,
-            res->content_len);
+    fprintf(lg->output, "[%s] %s:%d \"%s%s%s %s %s\" %s%d%s\n", timebuf, ip, port, method_color,
+            req->method, reset, req->uri, req->version, status_color, status, reset);
 }

@@ -49,15 +49,14 @@ const char *get_content_type(const char *ext) {
 int send_file_response(int client_sock, http_request *req, route_config router, char *buffer,
                        int buffer_size) {
 
-    char *file_path      = get_file_path(req->uri, router);
-    char *temp_file_path = strdup(file_path);
-    log_message(&lg, LOG_DEBUG, "[send_file_response]Resolved file path: %s", file_path);
+    char       *file_path      = get_file_path(req->uri, router);
+    char       *temp_file_path = strdup(file_path);
     struct stat st;
     if (stat(file_path, &st) < 0) {
         send_404(client_sock);
+        http_log(&lg, req, 404);
         return 0;
     }
-    log_message(&lg, LOG_DEBUG, "[send_file_response]Resolved file path2: %s", file_path);
 
     char header[512];
     int  header_len = snprintf(header, sizeof(header),
@@ -71,16 +70,11 @@ int send_file_response(int client_sock, http_request *req, route_config router, 
                                SERVER_NAME, get_http_date(), (long long)st.st_size,
                                get_content_type(get_file_extension(temp_file_path)));
 
-    log_message(&lg, LOG_DEBUG, "[send_file_response]Resolved file path3: %s", file_path);
-    log_message(&lg, LOG_DEBUG, "Response Header:\n%s", header);
-
     send(client_sock, header, header_len, 0);
-
-    log_message(&lg, LOG_DEBUG, "[send_file_response]Sending file: %s", file_path);
 
     send_file(client_sock, file_path, buffer, buffer_size);
 
-    log_message(&lg, LOG_DEBUG, "(expected %lld)", (long long)st.st_size);
+    http_log(&lg, req, 200);
 
     return 1;
 }

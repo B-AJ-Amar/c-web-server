@@ -28,6 +28,6 @@ extern logger lg;
 
 int  init_logger(logger *lg, log_level level, int use_colors, char *time_format, FILE *output);
 void log_message(logger *lg, log_level level, const char *fmt, ...);
-void http_log(logger *lg, http_request *req, http_response *res);
+void http_log(logger *lg, http_request *req, int status);
 
 #endif // LOGGER_H

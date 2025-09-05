@@ -99,8 +99,6 @@ int main() {
 
         strcpy(buf2, buffer);
 
-        log_message(&lg, LOG_DEBUG, " client request : %s", buffer);
-
         http_request http_req;
         memset(&http_req, 0, sizeof(http_req));
 
@@ -116,6 +114,7 @@ int main() {
                 // todo :  make it more clear
                 log_message(&lg, LOG_WARN, "No matching route for %s", http_req.endpoint);
                 send_404(client_sock);
+                http_log(&lg, &http_req, 404);
                 close(client_sock);
                 continue;
             } else {
@@ -125,6 +124,7 @@ int main() {
                     log_message(&lg, LOG_WARN, "Method %s not allowed for %s", http_req.method,
                                 http_req.endpoint);
                     send_405(client_sock);
+                    http_log(&lg, &http_req, 405);
                     close(client_sock);
                     continue;
                 }
@@ -138,6 +138,7 @@ int main() {
                         log_message(&lg, LOG_WARN, "Bad Gateway to %s",
                                     cfg.routes[route_index].proxy_pass);
                         send_502(client_sock);
+                        http_log(&lg, &http_req, 502);
                     }
                 } else {
                     send_file_response(client_sock, &http_req, cfg.routes[route_index],
@@ -148,6 +149,7 @@ int main() {
         } else {
             log_message(&lg, LOG_ERROR, "something went wrong\n");
             send_500(client_sock);
+            http_log(&lg, &http_req, 500);
             close(client_sock);
             continue;
         }
