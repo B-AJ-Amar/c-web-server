@@ -289,23 +289,3 @@ int load_config(const char *filename, app_config *cfg) {
     return 1;
 }
 
-
-
-int path_router(route_config *routes, http_request *req) {
-    if (!routes)
-        return -1;
-
-    for (int i = 0; routes[i].path != NULL; i++) {
-        size_t route_path_len = strlen(routes[i].path);
-        log_message(&lg, LOG_TRACE, "Comparing request endpoint '%s' with route path '%s'", req->endpoint,
-                    routes[i].path);
-        if (strncmp(req->endpoint, routes[i].path, route_path_len) == 0) {
-            log_message(&lg, LOG_DEBUG, "Matched route '%s' for request endpoint '%s'", routes[i].path,
-                        req->endpoint);
-            return i;
-            
-        }
-    }
-
-    return -1;
-}

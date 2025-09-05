@@ -42,5 +42,4 @@ typedef struct {
 extern app_config cfg;
 
 int load_config(const char *filename, app_config *cfg);
-int path_router(route_config *routes, http_request *req);
 #endif

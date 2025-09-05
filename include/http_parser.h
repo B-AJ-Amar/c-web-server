@@ -2,7 +2,7 @@
 #define HTTP_PARSER_H
 
 #define HTTP_METHODS_LEN  9
-#define HTTP_VERSIONS_LEN 3
+#define HTTP_VERSIONS_LEN 2
 #define URI_PATTERN       "^/[A-Za-z0-9._~!$&'()*+,;=:@/-]*(\\?[A-Za-z0-9._~!$&'()*+,;=:@/?-]*)?$"
 
 #include <netinet/in.h>
@@ -24,10 +24,10 @@ typedef struct http_quary_params {
 } http_quary_params;
 
 typedef struct http_request {
-    char                method[16];
-    char                uri[256];
-    char                version[8];
-    char                endpoint[256];
+    char                *method;
+    char                *uri;
+    char                *version;
+    char                *endpoint;
     http_quary_params  *quary;
     http_headers       *headers;
     int                 headers_count;

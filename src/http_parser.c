@@ -11,7 +11,7 @@ regex_t uri_regex;
 
 const char *http_methods[HTTP_METHODS_LEN]   = {"GET",     "HEAD",    "POST",  "PUT",  "DELETE",
                                                 "CONNECT", "OPTIONS", "TRACE", "PATCH"};
-const char *http_versions[HTTP_VERSIONS_LEN] = {"HTTP/1.0", "HTTP/1.1", "HTTP/2"};
+const char *http_versions[HTTP_VERSIONS_LEN] = {"HTTP/1.0", "HTTP/1.1"};
 
 void validate_http_method(char *method, http_request *request) {
     for (int i = 0; i < HTTP_METHODS_LEN; i++)

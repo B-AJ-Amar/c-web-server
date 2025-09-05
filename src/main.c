@@ -11,6 +11,7 @@
 #include "http_parser.h"
 #include "http_response.h"
 #include "logger.h"
+#include "middlewares.h"
 
 #define HTTP_RESPONSE_500                                                                          \
     "HTTP/1.1 500 Internal Server Error\r\nContent-Length: "                                       \
@@ -18,6 +19,8 @@
 
 #define HTTP_RESPONSE_404 "HTTP/1.1 404 Not Found\r\nContent-Length: 9\r\n\r\nNot Found"
 #define HTTP_RESPONSE_502 "HTTP/1.1 502 Bad Gateway\r\nContent-Length: 11\r\n\r\nBad Gateway"
+#define HTTP_RESPONSE_405 "HTTP/1.1 405 Method Not Allowed\r\nContent-Length: 18\r\n\r\nMethod Not Allowed"
+
 void init_serv() {
 
     if (!init_uri_regex())
@@ -108,7 +111,7 @@ int main() {
 
         if (1) {
 
-            route_index = path_router(cfg.routes, &http_req);
+            route_index = path_router(cfg.routes, http_req.endpoint);
             
             if (route_index == -1) {
                 // todo :  make it more clear
@@ -118,7 +121,15 @@ int main() {
                 continue;
             }
             else{
-                // handel allowed methods
+                int is_allowed = is_allowed_method(cfg.routes[route_index].methods, http_req.method);
+                if (!is_allowed)
+                {
+                    log_message(&lg, LOG_WARN, "Method %s not allowed for %s", http_req.method, http_req.endpoint);
+                    write(client_sock, HTTP_RESPONSE_405, strlen(HTTP_RESPONSE_405));
+                    close(client_sock);
+                    continue;
+                }
+                
                 if (cfg.routes[route_index].proxy_pass != NULL)
                 {
                     int status = handle_proxy(client_sock,&cfg.routes[route_index],buf2);

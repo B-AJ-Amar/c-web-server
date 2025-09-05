@@ -24,7 +24,7 @@ int parse_proxy(route_config *route) {
             return 0;
         }
 
-        char *scheme = strtok(url_copy, ":");     // "http"
+        char *scheme = strtok(url_copy, ":");      // "http"
         char *host   = strtok(NULL, ":");          // "//127.0.0.1"
         char *port   = strtok(NULL, ":");          // "5000" (may be NULL)
 
@@ -38,7 +38,6 @@ int parse_proxy(route_config *route) {
 
         route->proxy = proxy;
         
-        // Free the temporary copy
         free(url_copy);
     }
     return 1;
@@ -53,26 +52,17 @@ int handle_proxy(int client_sock,route_config *route,char* client_request){
     backend_addr.sin_port   = htons(route->proxy->port ? atoi(route->proxy->port) : 80);
     inet_pton(AF_INET, route->proxy->host, &backend_addr.sin_addr);
 
-    log_message(&lg,LOG_DEBUG,"[handle_proxy] CLIENTS message : %s",client_request);
 
-    if (connect(backend_sock, (struct sockaddr*)&backend_addr, sizeof(backend_addr)) < 0) {
-        log_message(&lg, LOG_DEBUG, "[handle_proxy]Failed to connect to proxy backend %s:%s", route->proxy->host, route->proxy->port ? route->proxy->port : "80");
-        return 1;
-    }
+    if (connect(backend_sock, (struct sockaddr*)&backend_addr, sizeof(backend_addr)) < 0)  return 1;
 
-    log_message(&lg, LOG_DEBUG, "[handle_proxy] Connected to proxy backend %s:%s , Sending request", route->proxy->host, route->proxy->port ? route->proxy->port : "80");
     write(backend_sock, client_request, strlen(client_request));
-    log_message(&lg, LOG_DEBUG, "[handle_proxy] Request sent to backend, waiting for response");    
 
     char proxy_buf[8192];
     int n = recv(backend_sock, proxy_buf, sizeof(proxy_buf),MSG_WAITALL);
-    log_message(&lg, LOG_DEBUG, "[handle_proxy] Read %d bytes from backend", n);
     if (n < 0) {
-        log_message(&lg, LOG_DEBUG, "[handle_proxy] Failed to read response from backend");
         close(backend_sock);
         return 1;
     }
-    log_message(&lg, LOG_DEBUG, "[handle_proxy] forwarding to client");
 
     write(client_sock, proxy_buf, n);
 
