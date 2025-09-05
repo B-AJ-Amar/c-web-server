@@ -1,7 +1,6 @@
 #ifndef FILE_HANDLER_H
 #define FILE_HANDLER_H
 
-
 #include "config.h"
 
 char *get_file_path(const char *uri, route_config router);

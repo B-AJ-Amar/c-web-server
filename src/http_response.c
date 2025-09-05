@@ -1,16 +1,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <time.h>
 #include <unistd.h>
-#include <sys/stat.h>
 
-
+#include "config.h"
 #include "file_handler.h"
 #include "http_parser.h"
 #include "http_response.h"
 #include "http_status.h"
-#include "config.h"
 #include "sock.h"
 
 char *get_http_date() {
@@ -25,8 +24,6 @@ char *get_http_date() {
     strftime(buffer, 100, "%a, %d %b %Y %H:%M:%S GMT", &gm_time);
     return buffer;
 }
-
-
 
 const char *get_content_type(const char *ext) {
     if (strcmp(ext, "html") == 0)
@@ -49,13 +46,10 @@ const char *get_content_type(const char *ext) {
         return CONTENT_TYPES.txt;
 }
 
+int send_file_response(int client_sock, http_request *req, route_config router, char *buffer,
+                       int buffer_size) {
 
-
-
-int send_file_response(int client_sock, http_request *req,route_config router,char* buffer,int buffer_size) {
-    
-
-    char *file_path = get_file_path(req->uri,router);
+    char *file_path      = get_file_path(req->uri, router);
     char *temp_file_path = strdup(file_path);
     log_message(&lg, LOG_DEBUG, "[send_file_response]Resolved file path: %s", file_path);
     struct stat st;
@@ -64,21 +58,19 @@ int send_file_response(int client_sock, http_request *req,route_config router,ch
         return 0;
     }
     log_message(&lg, LOG_DEBUG, "[send_file_response]Resolved file path2: %s", file_path);
-    
+
     char header[512];
-    int header_len = snprintf(header, sizeof(header),
-    "HTTP/1.1 200 OK\r\n"
-        "Server: %s\r\n"
-        "Date: %s\r\n"
-        "Content-Length: %lld\r\n"
-        "Content-Type: %s\r\n\r\n"
-        // "Connection: close\r\n\r\n"
-        ,SERVER_NAME,
-        get_http_date(),
-        (long long)st.st_size,
-        get_content_type(get_file_extension(temp_file_path))
-    );
-    
+    int  header_len = snprintf(header, sizeof(header),
+                               "HTTP/1.1 200 OK\r\n"
+                                "Server: %s\r\n"
+                                "Date: %s\r\n"
+                                "Content-Length: %lld\r\n"
+                                "Content-Type: %s\r\n\r\n"
+                               // "Connection: close\r\n\r\n"
+                               ,
+                               SERVER_NAME, get_http_date(), (long long)st.st_size,
+                               get_content_type(get_file_extension(temp_file_path)));
+
     log_message(&lg, LOG_DEBUG, "[send_file_response]Resolved file path3: %s", file_path);
     log_message(&lg, LOG_DEBUG, "Response Header:\n%s", header);
 
@@ -86,14 +78,9 @@ int send_file_response(int client_sock, http_request *req,route_config router,ch
 
     log_message(&lg, LOG_DEBUG, "[send_file_response]Sending file: %s", file_path);
 
+    send_file(client_sock, file_path, buffer, buffer_size);
 
-    
-    send_file(client_sock, file_path,buffer,buffer_size);
-
-
-    log_message(&lg, LOG_DEBUG, "(expected %lld)",
-             (long long)st.st_size);
-
+    log_message(&lg, LOG_DEBUG, "(expected %lld)", (long long)st.st_size);
 
     return 1;
 }
@@ -104,43 +91,38 @@ int send_status_response(int client_sock, int status_code) {
         log_message(&lg, LOG_ERROR, "[send_status_response] Invalid status code: %d", status_code);
         return 0;
     }
-    
+
     char *date = get_http_date();
     if (!date) {
         log_message(&lg, LOG_ERROR, "[send_status_response] Failed to get current date");
         return 0;
     }
-    
+
     char response[512];
-    int response_len = snprintf(response, sizeof(response),
-        "HTTP/1.1 %d %s\r\n"
-        "Server: %s\r\n"
-        "Date: %s\r\n"
-        "Content-Length: %zu\r\n"
-        "Content-Type: text/plain\r\n"
-        "\r\n"
-        "%s",
-        status_code, reason_phrase,
-        SERVER_NAME,
-        date,
-        strlen(reason_phrase),
-        reason_phrase
-    );
-    
+    int  response_len = snprintf(response, sizeof(response),
+                                 "HTTP/1.1 %d %s\r\n"
+                                  "Server: %s\r\n"
+                                  "Date: %s\r\n"
+                                  "Content-Length: %zu\r\n"
+                                  "Content-Type: text/plain\r\n"
+                                  "\r\n"
+                                  "%s",
+                                 status_code, reason_phrase, SERVER_NAME, date,
+                                 strlen(reason_phrase), reason_phrase);
+
     free(date);
-    
+
     if (response_len < 0 || response_len >= (int)sizeof(response)) {
-        log_message(&lg, LOG_ERROR, "[send_status_response] Response too large or formatting error");
+        log_message(&lg, LOG_ERROR,
+                    "[send_status_response] Response too large or formatting error");
         return 0;
     }
-    
+
     ssize_t bytes_sent = write(client_sock, response, response_len);
     if (bytes_sent == -1 || bytes_sent != response_len) {
         log_message(&lg, LOG_ERROR, "[send_status_response] Write error or incomplete write");
         return 0;
     }
-    
-    return 1;  // Success
+
+    return 1; // Success
 }
-
-

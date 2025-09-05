@@ -4,28 +4,28 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "config.h"
 #include "file_handler.h"
 #include "http_status.h"
-#include "config.h"
 #include "logger.h"
 
 char *get_file_path(const char *uri, route_config router) {
 
-    char *final_uri = NULL;
+    char       *final_uri  = NULL;
     const char *index_file = router.index;
     const char *files_root = router.root;
     const char *route_path = router.path;
-    
-    const char *relative_path = uri;
-    size_t route_path_len = strlen(route_path);
-    
+
+    const char *relative_path  = uri;
+    size_t      route_path_len = strlen(route_path);
+
     if (strncmp(uri, route_path, route_path_len) == 0) {
         relative_path = uri + route_path_len;
     }
-    
+
     if (strlen(relative_path) == 0 || relative_path[strlen(relative_path) - 1] == '/') {
         size_t new_uri_len = strlen(relative_path) + strlen(index_file);
-        final_uri = malloc(new_uri_len + 1);
+        final_uri          = malloc(new_uri_len + 1);
         if (!final_uri)
             return NULL;
         sprintf(final_uri, "%s%s", relative_path, index_file);
@@ -35,8 +35,8 @@ char *get_file_path(const char *uri, route_config router) {
             return NULL;
     }
 
-    size_t path_len = strlen(files_root) + strlen(final_uri);
-    char *file_path = malloc(path_len + 1);
+    size_t path_len  = strlen(files_root) + strlen(final_uri);
+    char  *file_path = malloc(path_len + 1);
     if (!file_path) {
         free(final_uri);
         return NULL;

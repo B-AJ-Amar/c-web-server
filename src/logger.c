@@ -12,10 +12,9 @@
 #include <stdarg.h>
 #include <time.h>
 
-const char *level_names[] = {"TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL"};
+const char *level_names[]  = {"TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL"};
 const char *level_colors[] = {COLOR_CYAN,   COLOR_MAGENTA, COLOR_GREEN,
-                                     COLOR_YELLOW, COLOR_RED,     COLOR_RED};
-
+                              COLOR_YELLOW, COLOR_RED,     COLOR_RED};
 
 logger lg;
 

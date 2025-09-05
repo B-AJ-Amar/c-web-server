@@ -54,17 +54,18 @@ static int validate_proxy_pass(const char *url) {
     int result = regexec(&regex, url, 0, NULL, 0);
     regfree(&regex);
 
-    if (result == 0) return 1;
+    if (result == 0)
+        return 1;
     return 0;
 }
 
-static void sort_paths_by_longer(route_config *routes){
-    for(int i=0; routes[i].path != NULL; i++){
-        for(int j=i+1; routes[j].path != NULL; j++){
-            if(strlen(routes[i].path) < strlen(routes[j].path)){
+static void sort_paths_by_longer(route_config *routes) {
+    for (int i = 0; routes[i].path != NULL; i++) {
+        for (int j = i + 1; routes[j].path != NULL; j++) {
+            if (strlen(routes[i].path) < strlen(routes[j].path)) {
                 route_config temp = routes[i];
-                routes[i] = routes[j];
-                routes[j] = temp;
+                routes[i]         = routes[j];
+                routes[j]         = temp;
             }
         }
     }
@@ -280,4 +281,3 @@ int load_config(const char *filename, app_config *cfg) {
     toml_free(conf);
     return 1;
 }
-

@@ -3,10 +3,10 @@
 
 #include "http_parser.h"
 #include "logger.h"
+#include "proxy.h"
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "proxy.h"
 typedef struct {
     char *host;
     int   port;

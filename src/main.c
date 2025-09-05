@@ -14,7 +14,7 @@
 #include "middlewares.h"
 #include "sock.h"
 
-#define BUFFER_SIZE 8192 
+#define BUFFER_SIZE 8192
 
 char files_buffer[8192];
 
@@ -24,10 +24,10 @@ void init_serv() {
         exit(EXIT_FAILURE);
 
     if (!load_config("./cws.conf", &cfg))
-    exit(EXIT_FAILURE);
+        exit(EXIT_FAILURE);
 
     for (int i = 0; cfg.routes[i].path != NULL; i++) {
-        if (cfg.routes[i].proxy_pass != NULL){
+        if (cfg.routes[i].proxy_pass != NULL) {
             if (!parse_proxy(&cfg.routes[i])) {
                 exit(EXIT_FAILURE);
             }
@@ -37,8 +37,7 @@ void init_serv() {
     if (!init_logger(&lg, cfg.logging.level, 1, NULL, NULL))
         exit(EXIT_FAILURE);
 
-    memset(files_buffer,0,sizeof(files_buffer));
-
+    memset(files_buffer, 0, sizeof(files_buffer));
 }
 
 void kill_serv(int serv_sock) {
@@ -98,9 +97,9 @@ int main() {
 
         char buf2[sizeof(buffer)];
 
-        strcpy(buf2,buffer);
+        strcpy(buf2, buffer);
 
-        log_message(&lg, LOG_DEBUG, " client request : %s",buffer);
+        log_message(&lg, LOG_DEBUG, " client request : %s", buffer);
 
         http_request http_req;
         memset(&http_req, 0, sizeof(http_req));
@@ -112,46 +111,41 @@ int main() {
         if (!http_req.is_invalid) {
 
             route_index = path_router(cfg.routes, http_req.endpoint);
-            
+
             if (route_index == -1) {
                 // todo :  make it more clear
                 log_message(&lg, LOG_WARN, "No matching route for %s", http_req.endpoint);
                 send_404(client_sock);
                 close(client_sock);
                 continue;
-            }
-            else{
-                int is_allowed = is_allowed_method(cfg.routes[route_index].methods, http_req.method);
-                if (!is_allowed)
-                {
-                    log_message(&lg, LOG_WARN, "Method %s not allowed for %s", http_req.method, http_req.endpoint);
+            } else {
+                int is_allowed =
+                    is_allowed_method(cfg.routes[route_index].methods, http_req.method);
+                if (!is_allowed) {
+                    log_message(&lg, LOG_WARN, "Method %s not allowed for %s", http_req.method,
+                                http_req.endpoint);
                     send_405(client_sock);
                     close(client_sock);
                     continue;
                 }
-                
-                if (cfg.routes[route_index].proxy_pass != NULL)
-                {
-                    log_message(&lg, LOG_INFO, "Serving %s for %s", cfg.routes[route_index].root, http_req.uri);
-                    int status = handle_proxy(client_sock,&cfg.routes[route_index],buf2);
 
-                    if (status != 0)
-                    {
-                        log_message(&lg, LOG_WARN, "Bad Gateway to %s", cfg.routes[route_index].proxy_pass);
+                if (cfg.routes[route_index].proxy_pass != NULL) {
+                    log_message(&lg, LOG_INFO, "Serving %s for %s", cfg.routes[route_index].root,
+                                http_req.uri);
+                    int status = handle_proxy(client_sock, &cfg.routes[route_index], buf2);
+
+                    if (status != 0) {
+                        log_message(&lg, LOG_WARN, "Bad Gateway to %s",
+                                    cfg.routes[route_index].proxy_pass);
                         send_502(client_sock);
                     }
+                } else {
+                    send_file_response(client_sock, &http_req, cfg.routes[route_index],
+                                       files_buffer, BUFFER_SIZE);
                 }
-                else
-                {   
-                    send_file_response(client_sock,&http_req,cfg.routes[route_index],files_buffer,BUFFER_SIZE);
-                }
-                
-                
             }
 
-
-        } 
-        else {
+        } else {
             log_message(&lg, LOG_ERROR, "something went wrong\n");
             send_500(client_sock);
             close(client_sock);
