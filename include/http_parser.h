@@ -24,10 +24,10 @@ typedef struct http_quary_params {
 } http_quary_params;
 
 typedef struct http_request {
-    char                *method;
-    char                *uri;
-    char                *version;
-    char                *endpoint;
+    char                method[16];
+    char                uri[256];
+    char                version[8];
+    char                endpoint[256];
     http_quary_params  *quary;
     http_headers       *headers;
     int                 headers_count;

@@ -5,6 +5,8 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
+#include <netdb.h>
+
 #include "proxy.h"
 #include "config.h"
 #include "logger.h"
@@ -34,7 +36,10 @@ int parse_proxy(route_config *route) {
 
         proxy->scheme = scheme ? strdup(scheme) : NULL;
         proxy->host   = host ? strdup(host) : NULL;
-        proxy->port   = port ? strdup(port) : NULL;
+
+        if (port) proxy->port = strdup(port);
+        else if (scheme && strcmp(scheme, "https") == 0) proxy->port = strdup("443");
+        else proxy->port = strdup("80");
 
         route->proxy = proxy;
         
@@ -52,6 +57,14 @@ int handle_proxy(int client_sock,route_config *route,char* client_request){
     backend_addr.sin_port   = htons(route->proxy->port ? atoi(route->proxy->port) : 80);
     inet_pton(AF_INET, route->proxy->host, &backend_addr.sin_addr);
 
+    if (inet_pton(AF_INET, route->proxy->host, &backend_addr.sin_addr) <= 0) {
+        struct hostent *he = gethostbyname(route->proxy->host);
+        if (!he) {
+            close(backend_sock);
+            return 1;
+        }
+        memcpy(&backend_addr.sin_addr, he->h_addr_list[0], he->h_length);
+    }
 
     if (connect(backend_sock, (struct sockaddr*)&backend_addr, sizeof(backend_addr)) < 0)  return 1;
 
