@@ -6,7 +6,7 @@ struct route_config;
 typedef struct proxy_info{
 char *scheme ;     // "http"
 char *host ;      // "127.0.0.1"
-char *port;       // "5000" | NULL
+int port;         // 5000
 } proxy_info;
 
 

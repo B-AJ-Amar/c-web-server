@@ -54,15 +54,7 @@ static int validate_proxy_pass(const char *url) {
     int result = regexec(&regex, url, 0, NULL, 0);
     regfree(&regex);
 
-    if (result == 0) {
-        const char *colon = strrchr(url, ':');
-        if (colon && strstr(url, "://") != colon - 5) {
-            int port = atoi(colon + 1);
-            if (port <= 0 || port > 65535)
-                return 0;
-        }
-        return 1;
-    }
+    if (result == 0) return 1;
     return 0;
 }
 
@@ -80,7 +72,7 @@ static void sort_paths_by_longer(route_config *routes){
 
 static int validate_route_config(route_config *rc, server_config *srv) {
     if (!rc->path || rc->path[0] != '/') {
-        log_message(&lg, LOG_FATAL, "Invalid route path: must start with '/'");
+        // log_message(&lg, LOG_FATAL, "Invalid route path: must start with '/'");
         return 0;
     }
 
