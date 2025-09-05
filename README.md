@@ -18,6 +18,12 @@ A lightweight web server written in C, built from scratch to understand how netw
      
    * add basic configuration file support.
 
+- **Proxy Features**
+
+   [x] Add reverse proxy capabilities to forward requests to other applications (Node.js, Python, Java, etc.).
+
+- **Large requests handling**
+  
    * fix buffer overflow issues (send/recive big files).
 
 - **Multi-Threading Support**
@@ -35,9 +41,6 @@ A lightweight web server written in C, built from scratch to understand how netw
    * Integrate with a PHP interpreter to handle dynamic web pages.
    * Support executing PHP scripts and returning the output.
 
-- **Proxy Features**
-
-   * Add reverse proxy capabilities to forward requests to other applications (Node.js, Python, Java, etc.).
 
 ## Future Enhancements
 

@@ -93,6 +93,12 @@ int main() {
         int n     = read(client_sock, buffer, sizeof(buffer));
         buffer[n] = '\0';
 
+        char buf2[sizeof(buffer)];
+
+        strcpy(buf2,buffer);
+
+        log_message(&lg, LOG_DEBUG, " client request : %s",buffer);
+
         http_request http_req;
         memset(&http_req, 0, sizeof(http_req));
 
@@ -100,7 +106,7 @@ int main() {
 
         parse_http_request(buffer, &http_req);
 
-        if (http_req.is_invalid == 0) {
+        if (1) {
 
             route_index = path_router(cfg.routes, &http_req);
             
@@ -115,7 +121,7 @@ int main() {
                 // handel allowed methods
                 if (cfg.routes[route_index].proxy_pass != NULL)
                 {
-                    int status = handle_proxy(client_sock,&cfg.routes[route_index],buffer);
+                    int status = handle_proxy(client_sock,&cfg.routes[route_index],buf2);
 
                     if (status != 0)
                     {
