@@ -5,6 +5,20 @@
 #define HTTP_VERSIONS_LEN 2
 #define URI_PATTERN       "^/[A-Za-z0-9._~!$&'()*+,;=:@/-]*(\\?[A-Za-z0-9._~!$&'()*+,;=:@/?-]*)?$"
 
+#define HTTP_GET     "GET"
+#define HTTP_POST    "POST"
+#define HTTP_PUT     "PUT"
+#define HTTP_DELETE  "DELETE"
+#define HTTP_CONNECT "CONNECT"
+#define HTTP_OPTIONS "OPTIONS"
+#define HTTP_HEAD    "HEAD"
+#define HTTP_TRACE   "TRACE"
+#define HTTP_PATCH   "PATCH"
+
+#define HTTP_V1_0 "HTTP/1.0"
+#define HTTP_V1_1 "HTTP/1.1"
+
+
 #include <netinet/in.h>
 #include <regex.h>
 

@@ -62,3 +62,5 @@ ignore_*
 ignore/*
 
 csw.conf
+
+*.png

@@ -9,9 +9,9 @@
 
 regex_t uri_regex;
 
-const char *http_methods[HTTP_METHODS_LEN]   = {"GET",     "HEAD",    "POST",  "PUT",  "DELETE",
-                                                "CONNECT", "OPTIONS", "TRACE", "PATCH"};
-const char *http_versions[HTTP_VERSIONS_LEN] = {"HTTP/1.0", "HTTP/1.1"};
+const char *http_methods[HTTP_METHODS_LEN]   = {HTTP_GET,     HTTP_HEAD,    HTTP_POST,  HTTP_PUT,  HTTP_DELETE,
+                                                HTTP_CONNECT, HTTP_OPTIONS, HTTP_TRACE, HTTP_PATCH};
+const char *http_versions[HTTP_VERSIONS_LEN] = {HTTP_V1_0, HTTP_V1_1};
 
 void validate_http_method(char *method, http_request *request) {
     for (int i = 0; i < HTTP_METHODS_LEN; i++)

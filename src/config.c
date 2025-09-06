@@ -102,8 +102,8 @@ static int validate_route_config(route_config *rc, server_config *srv) {
     if (rc->methods) {
         for (int i = 0; rc->methods[i]; i++) {
             const char *m = rc->methods[i];
-            if (!(strcmp(m, "GET") == 0 || strcmp(m, "POST") == 0 || strcmp(m, "HEAD") == 0 ||
-                  strcmp(m, "PUT") == 0 || strcmp(m, "DELETE") == 0)) {
+            if (!(strcmp(m, HTTP_GET) == 0 || strcmp(m, HTTP_POST) == 0 || strcmp(m, HTTP_HEAD) == 0 ||
+                  strcmp(m, HTTP_PUT) == 0 || strcmp(m, HTTP_DELETE) == 0)) {
                 log_message(&lg, LOG_FATAL, "Invalid HTTP method '%s' in route '%s'", m, rc->path);
                 return 0;
             }

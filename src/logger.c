@@ -76,13 +76,13 @@ void http_log(logger *lg, http_request *req, int status) {
     const char *reset        = lg->use_colors ? COLOR_RESET : "";
 
     if (lg->use_colors) {
-        if (strcmp(req->method, "GET") == 0)
+        if (strcmp(req->method, HTTP_GET) == 0)
             method_color = COLOR_GREEN;
-        else if (strcmp(req->method, "CONNECT") == 0)
+        else if (strcmp(req->method, HTTP_CONNECT) == 0)
             method_color = COLOR_GREEN;
-        else if (strcmp(req->method, "POST") == 0)
+        else if (strcmp(req->method, HTTP_POST) == 0)
             method_color = COLOR_CYAN;
-        else if (strcmp(req->method, "DELETE") == 0)
+        else if (strcmp(req->method, HTTP_DELETE) == 0)
             method_color = COLOR_RED;
         else
             method_color = COLOR_YELLOW;

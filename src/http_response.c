@@ -53,6 +53,9 @@ int send_file_response(int client_sock, http_request *req, route_config router, 
     char       *temp_file_path = strdup(file_path);
     struct stat st;
     if (stat(file_path, &st) < 0) {
+        // if (router.autoindex && req->uri[strlen(req->uri) - 1] == '/' && req->method == HTTP_GET) {
+        //     return send_autoindex_response(client_sock, req, router, buffer, buffer_size,file_path);
+        // }
         send_404(client_sock);
         http_log(&lg, req, 404);
         return 0;
@@ -118,5 +121,5 @@ int send_status_response(int client_sock, int status_code) {
         return 0;
     }
 
-    return 1; // Success
+    return 1;
 }
