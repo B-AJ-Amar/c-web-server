@@ -18,7 +18,6 @@
 #define HTTP_V1_0 "HTTP/1.0"
 #define HTTP_V1_1 "HTTP/1.1"
 
-
 #include <netinet/in.h>
 #include <regex.h>
 

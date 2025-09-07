@@ -33,6 +33,8 @@ A lightweight web server written in C, built from scratch to better understand n
   - [ ] Support executing PHP scripts and returning the output.
 
 ## Future Enhancements
+
+- [ ] Inhance the multi threading system (add event loops)
 - [ ] Add caching support.
 - [ ] Support HTTP/2 & HTTP/3.
 - [ ] Add WebSocket support.
