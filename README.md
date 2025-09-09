@@ -107,6 +107,7 @@ host = "0.0.0.0"              # IP address to bind to (0.0.0.0 for all interface
 port = 8080                   # Port to listen on
 max_connections = 100         # Maximum number of concurrent connections
 sock_buffer_size = 4096       # Socket buffer size in bytes
+workers = 4                   # Number of worker threads (default: 1)
 default_index_name = "index.html"  # Default file to serve for directories
 ```
 

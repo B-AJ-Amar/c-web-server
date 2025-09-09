@@ -133,6 +133,7 @@ int load_config(const char *filename, app_config *cfg) {
     cfg->server.port               = 8080;
     cfg->server.max_connections    = 100;
     cfg->server.sock_buffer_size   = 4096;
+    cfg->server.workers            = 1;
     cfg->server.default_index_name = strdup("index.html");
 
     cfg->logging.level       = LOG_INFO;
@@ -174,6 +175,13 @@ int load_config(const char *filename, app_config *cfg) {
                 return 0;
             }
             cfg->server.sock_buffer_size = (int)s.u.i;
+        }
+        if ((s = toml_int_in(server, "workers")).ok) {
+            if (s.u.i <= 0) {
+                log_message(&lg, LOG_FATAL, "Invalid server.workers: %lld (must be >= 1)", s.u.i);
+                return 0;
+            }
+            cfg->server.workers = (int)s.u.i;
         }
         if ((s = toml_string_in(server, "default_index_name")).ok) {
             free(cfg->server.default_index_name);

@@ -12,6 +12,7 @@ typedef struct {
     int   port;
     int   max_connections;
     int   sock_buffer_size;
+    int   workers;
     char *default_index_name;
 } server_config;
 

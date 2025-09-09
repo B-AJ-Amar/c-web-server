@@ -13,6 +13,7 @@
 #include "logger.h"
 #include "middlewares.h"
 #include "sock.h"
+#include "thread_pool.h"
 
 #define BUFFER_SIZE 8192
 
@@ -38,6 +39,7 @@ void init_serv() {
         exit(EXIT_FAILURE);
 
     memset(files_buffer, 0, sizeof(files_buffer));
+
 }
 
 void kill_serv(int serv_sock) {
@@ -45,11 +47,21 @@ void kill_serv(int serv_sock) {
     close(serv_sock);
     if (cfg.logging.output && cfg.logging.output != stdout && cfg.logging.output != stderr)
         fclose(cfg.logging.output);
+
 }
 
 int main() {
 
     init_serv();
+
+    task_queue *queue = create_task_queue();
+    pthread_t  *threads = init_thread_pool(cfg.server.workers, queue);
+    if (!queue || !threads) {
+        log_message(&lg, LOG_ERROR, "Failed to initialize thread pool");
+        exit(EXIT_FAILURE);
+    }
+    log_message(&lg, LOG_INFO, "Thread pool initialized with %d threads", cfg.server.workers);
+
 
     char               buffer[cfg.server.sock_buffer_size];
     int                serv_sock, client_sock, route_index;
