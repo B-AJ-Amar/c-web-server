@@ -51,39 +51,16 @@ int main() {
 
     init_serv();
 
-    struct sockaddr_in serv_addr;
     char               buffer[cfg.server.sock_buffer_size];
     int                serv_sock, client_sock, route_index;
     struct sockaddr_in client_addr;
     socklen_t          client_len = sizeof(client_addr);
 
-    serv_sock = socket(AF_INET, SOCK_STREAM, 0);
-    if (serv_sock < 0) {
-        perror("socket failed");
-        exit(EXIT_FAILURE);
-    }
-
-    // Allow reuse of local addresses
-    int opt = 1;
-    if (setsockopt(serv_sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
-        perror("setsockopt failed");
-        exit(EXIT_FAILURE);
-    }
-
-    memset(&serv_addr, 0, sizeof(serv_addr));
-    serv_addr.sin_family      = AF_INET;
-    serv_addr.sin_addr.s_addr = inet_addr(cfg.server.host);
-    serv_addr.sin_port        = htons(cfg.server.port);
-
-    if (bind(serv_sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
-        perror("ERROR on binding");
-        close(serv_sock);
-        exit(1);
-    }
-
-    listen(serv_sock, cfg.server.max_connections);
+    serv_sock =  init_socket(&cfg.server);
     log_message(&lg, LOG_INFO, "Server listening on port %d...", cfg.server.port);
+    
     while (1) {
+        // todo :add multi threads
         client_sock = accept(serv_sock, (struct sockaddr *)&client_addr, &client_len);
 
         if (client_sock < 0) {
@@ -97,7 +74,7 @@ int main() {
 
         char buf2[sizeof(buffer)];
 
-        strcpy(buf2, buffer);
+        strcpy(buf2, buffer); // tofix
 
         http_request http_req;
         memset(&http_req, 0, sizeof(http_req));
@@ -113,8 +90,7 @@ int main() {
             if (route_index == -1) {
                 // todo :  make it more clear
                 log_message(&lg, LOG_WARN, "No matching route for %s", http_req.endpoint);
-                send_404(client_sock);
-                http_log(&lg, &http_req, 404);
+                send_404(client_sock, &http_req);
                 close(client_sock);
                 continue;
             } else {
@@ -123,8 +99,7 @@ int main() {
                 if (!is_allowed) {
                     log_message(&lg, LOG_WARN, "Method %s not allowed for %s", http_req.method,
                                 http_req.endpoint);
-                    send_405(client_sock);
-                    http_log(&lg, &http_req, 405);
+                    send_405(client_sock, &http_req);
                     close(client_sock);
                     continue;
                 }
@@ -137,8 +112,7 @@ int main() {
                     if (status != 0) {
                         log_message(&lg, LOG_WARN, "Bad Gateway to %s",
                                     cfg.routes[route_index].proxy_pass);
-                        send_502(client_sock);
-                        http_log(&lg, &http_req, 502);
+                        send_502(client_sock, &http_req);
                     }
                 } else {
                     send_file_response(client_sock, &http_req, cfg.routes[route_index],
@@ -148,8 +122,7 @@ int main() {
 
         } else {
             log_message(&lg, LOG_ERROR, "something went wrong\n");
-            send_500(client_sock);
-            http_log(&lg, &http_req, 500);
+            send_500(client_sock, &http_req);
             close(client_sock);
             continue;
         }

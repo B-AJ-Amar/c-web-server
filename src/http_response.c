@@ -58,8 +58,7 @@ int send_file_response(int client_sock, http_request *req, route_config router, 
         //     return send_autoindex_response(client_sock, req, router, buffer,
         //     buffer_size,file_path);
         // }
-        send_404(client_sock);
-        http_log(&lg, req, 404);
+        send_404(client_sock, req);
         return 0;
     }
 
