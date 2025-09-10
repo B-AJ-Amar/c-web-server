@@ -1,15 +1,15 @@
+#include <arpa/inet.h>
 #include <fcntl.h>
+#include <netinet/in.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
-#include <arpa/inet.h>
-#include <netinet/in.h>
 
-#include "logger.h"
 #include "config.h"
 #include "http_parser.h"
+#include "logger.h"
 
 #define HTTP_RESPONSE_502 "HTTP/1.1 502 Bad Gateway\r\nContent-Length: 11\r\n\r\nBad Gateway"
 #define HTTP_RESPONSE_500                                                                          \
@@ -20,12 +20,9 @@
     "HTTP/1.1 405 Method Not Allowed\r\nContent-Length: 18\r\n\r\nMethod Not Allowed"
 #define HTTP_RESPONSE_404 "HTTP/1.1 404 Not Found\r\nContent-Length: 9\r\n\r\nNot Found"
 
-
-
-
-int init_socket(server_config *cfg){
+int init_socket(server_config *cfg) {
     struct sockaddr_in serv_addr;
-    int serv_sock = socket(AF_INET, SOCK_STREAM, 0);
+    int                serv_sock = socket(AF_INET, SOCK_STREAM, 0);
     if (serv_sock < 0) {
         perror("socket failed");
         exit(EXIT_FAILURE);
@@ -55,24 +52,28 @@ int init_socket(server_config *cfg){
 
 ssize_t send_500(int client_sock, http_request *req) {
     ssize_t result = write(client_sock, HTTP_RESPONSE_500, strlen(HTTP_RESPONSE_500));
-    if (req != NULL)http_log(&lg, req, 500);
+    if (req != NULL)
+        http_log(&lg, req, 500);
     return result;
 }
 
 ssize_t send_502(int client_sock, http_request *req) {
     ssize_t result = write(client_sock, HTTP_RESPONSE_502, strlen(HTTP_RESPONSE_502));
-    if (req != NULL)http_log(&lg, req, 502);
+    if (req != NULL)
+        http_log(&lg, req, 502);
     return result;
 }
 ssize_t send_404(int client_sock, http_request *req) {
     ssize_t result = write(client_sock, HTTP_RESPONSE_404, strlen(HTTP_RESPONSE_404));
-    if (req != NULL)http_log(&lg, req, 404);
+    if (req != NULL)
+        http_log(&lg, req, 404);
     return result;
 }
 
 ssize_t send_405(int client_sock, http_request *req) {
     ssize_t result = write(client_sock, HTTP_RESPONSE_405, strlen(HTTP_RESPONSE_405));
-    if (req != NULL)http_log(&lg, req, 405);
+    if (req != NULL)
+        http_log(&lg, req, 405);
     return result;
 }
 

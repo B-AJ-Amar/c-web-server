@@ -29,11 +29,10 @@ typedef struct thread_args {
 pthread_t  *init_thread_pool(int num_threads, task_queue *queue);
 int         destroy_thread_pool(int num_threads, pthread_t *threads);
 void       *start_thread(void *args);
-void       *start_thread2(void *args);
-void       *start_thread3(void *args);
 task_queue *create_task_queue();
 int         destroy_task_queue(task_queue *queue);
 void        add_task(task_queue *queue, void (*function)(void *), void *args);
 void       *get_task(task_queue *queue);
+char       *get_thread_buffer();
 
 #endif // THREAD_POOL_H

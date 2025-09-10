@@ -15,10 +15,6 @@
 #include "sock.h"
 #include "thread_pool.h"
 
-#define FILES_BUFFER_SIZE 8192
-
-char files_buffer[FILES_BUFFER_SIZE];
-
 void init_serv() {
 
     if (!init_uri_regex())
@@ -37,9 +33,6 @@ void init_serv() {
 
     if (!init_logger(&lg, cfg.logging.level, 1, NULL, NULL))
         exit(EXIT_FAILURE);
-
-    memset(files_buffer, 0, sizeof(files_buffer));
-
 }
 
 void kill_serv(int serv_sock) {
@@ -50,18 +43,27 @@ void kill_serv(int serv_sock) {
 }
 
 void handle_http_request(int client_sock) {
-    char buffer[cfg.server.sock_buffer_size];
-    int n = read(client_sock, buffer, sizeof(buffer));
+    char *buffer      = get_thread_buffer();
+    int   buffer_size = cfg.server.sock_buffer_size;
+
+    if (!buffer) {
+        log_message(&lg, LOG_ERROR, "Failed to get thread buffer");
+        send_500(client_sock, NULL);
+        close(client_sock);
+        return;
+    }
+
+    int n     = read(client_sock, buffer, buffer_size - 1);
     buffer[n] = '\0';
 
-    char buf2[sizeof(buffer)];
+    char buf2[n + 1];
     strcpy(buf2, buffer); // tofix
 
     http_request http_req;
     memset(&http_req, 0, sizeof(http_req));
 
     struct sockaddr_in client_addr;
-    socklen_t client_len = sizeof(client_addr);
+    socklen_t          client_len = sizeof(client_addr);
     getpeername(client_sock, (struct sockaddr *)&client_addr, &client_len);
     http_req.client_addr = &client_addr;
 
@@ -97,8 +99,8 @@ void handle_http_request(int client_sock) {
                     send_502(client_sock, &http_req);
                 }
             } else {
-                send_file_response(client_sock, &http_req, cfg.routes[route_index],
-                                   files_buffer, FILES_BUFFER_SIZE);
+                send_file_response(client_sock, &http_req, cfg.routes[route_index], buffer,
+                                   buffer_size);
             }
         }
     } else {
@@ -121,7 +123,7 @@ int main() {
 
     init_serv();
 
-    task_queue *queue = create_task_queue();
+    task_queue *queue   = create_task_queue();
     pthread_t  *threads = init_thread_pool(cfg.server.workers, queue);
     if (!queue || !threads) {
         log_message(&lg, LOG_ERROR, "Failed to initialize thread pool");
@@ -135,7 +137,7 @@ int main() {
 
     serv_sock = init_socket(&cfg.server);
     log_message(&lg, LOG_INFO, "Server listening on port %d...", cfg.server.port);
-    
+
     while (1) {
         client_sock = accept(serv_sock, (struct sockaddr *)&client_addr, &client_len);
 

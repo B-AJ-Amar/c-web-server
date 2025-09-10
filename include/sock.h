@@ -1,10 +1,10 @@
 #ifndef SOCK_H
 #define SOCK_H
 
-#include <stdio.h>
-#include <stdlib.h>
 #include "config.h"
 #include "http_parser.h"
+#include <stdio.h>
+#include <stdlib.h>
 
 int init_socket(server_config *cfg);
 

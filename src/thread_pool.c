@@ -4,16 +4,21 @@
 #include <semaphore.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
+#include "config.h"
 #include "thread_pool.h"
 
 pthread_mutex_t mutex_queue;
 sem_t           sem_queue;
+pthread_key_t   buffer_key;
 
 pthread_t *init_thread_pool(int num_threads, task_queue *queue) {
 
     pthread_mutex_init(&mutex_queue, NULL);
     sem_init(&sem_queue, 0, 0);
+
+    pthread_key_create(&buffer_key, free);
 
     if (queue == NULL)
         queue = create_task_queue();
@@ -23,7 +28,7 @@ pthread_t *init_thread_pool(int num_threads, task_queue *queue) {
         perror("Failed to allocate memory for threads");
         return NULL;
     }
-    
+
     for (int i = 0; i < num_threads; i++) {
         thread_args *args = malloc(sizeof(thread_args));
         if (!args) {
@@ -31,9 +36,10 @@ pthread_t *init_thread_pool(int num_threads, task_queue *queue) {
             free(threads);
             return NULL;
         }
-        args->id = i;
+
+        args->id    = i;
         args->queue = queue;
-        
+
         if (pthread_create(&threads[i], NULL, start_thread, args) != 0) {
             perror("Failed to create thread");
             free(args);
@@ -49,14 +55,24 @@ int destroy_thread_pool(int num_threads, pthread_t *threads) {
         pthread_join(threads[i], NULL);
     }
     free(threads);
+    pthread_key_delete(buffer_key);
     return 0;
 }
 
 void *start_thread(void *args) {
     thread_args *thread_data = (thread_args *)args;
-    int thread_id = thread_data->id;
-    task_queue *queue = thread_data->queue;
-    
+    int          thread_id   = thread_data->id;
+    task_queue  *queue       = thread_data->queue;
+
+    char *buffer = malloc(cfg.server.sock_buffer_size);
+    if (!buffer) {
+        perror("Failed to allocate memory for thread buffer");
+        return NULL;
+    }
+    memset(buffer, 0, cfg.server.sock_buffer_size);
+
+    pthread_setspecific(buffer_key, buffer);
+
     while (1) {
         sem_wait(&sem_queue);
         task *t = (task *)get_task(queue);
@@ -100,8 +116,11 @@ int destroy_task_queue(task_queue *queue) {
 void add_task(task_queue *queue, void (*function)(void *), void *args) {
 
     pthread_mutex_lock(&mutex_queue);
-    if (!queue)
+    if (!queue) {
+
+        pthread_mutex_unlock(&mutex_queue);
         return;
+    }
 
     task_node *new_node = malloc(sizeof(task_node));
     if (!new_node) {
@@ -110,7 +129,7 @@ void add_task(task_queue *queue, void (*function)(void *), void *args) {
     }
 
     new_node->task.function = function;
-    new_node->task.args      = args;
+    new_node->task.args     = args;
     new_node->next          = NULL;
 
     if (queue->last) {
@@ -129,6 +148,7 @@ void add_task(task_queue *queue, void (*function)(void *), void *args) {
 void *get_task(task_queue *queue) {
     pthread_mutex_lock(&mutex_queue);
     if (!queue || !queue->first) {
+        pthread_mutex_unlock(&mutex_queue);
         return NULL;
     }
 
@@ -138,13 +158,13 @@ void *get_task(task_queue *queue) {
         queue->last = NULL;
     }
 
-    void *args                = node->task.args;
+    void *args               = node->task.args;
     void (*function)(void *) = node->task.function;
 
     task *ret_task = malloc(sizeof(task));
     if (ret_task) {
         ret_task->function = function;
-        ret_task->args      = args;
+        ret_task->args     = args;
     }
 
     free(node);
@@ -153,3 +173,5 @@ void *get_task(task_queue *queue) {
 
     return ret_task;
 }
+
+char *get_thread_buffer() { return (char *)pthread_getspecific(buffer_key); }
