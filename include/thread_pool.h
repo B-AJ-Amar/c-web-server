@@ -7,7 +7,7 @@
 
 typedef struct task {
     void (*function)(void *);
-    void *arg;
+    void *args;
 } task;
 
 typedef struct task_node {
@@ -21,12 +21,19 @@ typedef struct task_queue {
     task_node *last;
 } task_queue;
 
+typedef struct thread_args {
+    int         id;
+    task_queue *queue;
+} thread_args;
+
 pthread_t  *init_thread_pool(int num_threads, task_queue *queue);
 int         destroy_thread_pool(int num_threads, pthread_t *threads);
-void       *start_thread(void *arg);
+void       *start_thread(void *args);
+void       *start_thread2(void *args);
+void       *start_thread3(void *args);
 task_queue *create_task_queue();
 int         destroy_task_queue(task_queue *queue);
-void        add_task(task_queue *queue, void (*function)(void *), void *arg);
+void        add_task(task_queue *queue, void (*function)(void *), void *args);
 void       *get_task(task_queue *queue);
 
 #endif // THREAD_POOL_H

@@ -15,9 +15,9 @@
 #include "sock.h"
 #include "thread_pool.h"
 
-#define BUFFER_SIZE 8192
+#define FILES_BUFFER_SIZE 8192
 
-char files_buffer[8192];
+char files_buffer[FILES_BUFFER_SIZE];
 
 void init_serv() {
 
@@ -47,7 +47,74 @@ void kill_serv(int serv_sock) {
     close(serv_sock);
     if (cfg.logging.output && cfg.logging.output != stdout && cfg.logging.output != stderr)
         fclose(cfg.logging.output);
+}
 
+void handle_http_request(int client_sock) {
+    char buffer[cfg.server.sock_buffer_size];
+    int n = read(client_sock, buffer, sizeof(buffer));
+    buffer[n] = '\0';
+
+    char buf2[sizeof(buffer)];
+    strcpy(buf2, buffer); // tofix
+
+    http_request http_req;
+    memset(&http_req, 0, sizeof(http_req));
+
+    struct sockaddr_in client_addr;
+    socklen_t client_len = sizeof(client_addr);
+    getpeername(client_sock, (struct sockaddr *)&client_addr, &client_len);
+    http_req.client_addr = &client_addr;
+
+    parse_http_request(buffer, &http_req);
+
+    if (!http_req.is_invalid) {
+        int route_index = path_router(cfg.routes, http_req.endpoint);
+
+        if (route_index == -1) {
+            // todo :  make it more clear
+            log_message(&lg, LOG_WARN, "No matching route for %s", http_req.endpoint);
+            send_404(client_sock, &http_req);
+            close(client_sock);
+            return;
+        } else {
+            int is_allowed = is_allowed_method(cfg.routes[route_index].methods, http_req.method);
+            if (!is_allowed) {
+                log_message(&lg, LOG_WARN, "Method %s not allowed for %s", http_req.method,
+                            http_req.endpoint);
+                send_405(client_sock, &http_req);
+                close(client_sock);
+                return;
+            }
+
+            if (cfg.routes[route_index].proxy_pass != NULL) {
+                log_message(&lg, LOG_INFO, "Serving %s for %s", cfg.routes[route_index].root,
+                            http_req.uri);
+                int status = handle_proxy(client_sock, &cfg.routes[route_index], buf2);
+
+                if (status != 0) {
+                    log_message(&lg, LOG_WARN, "Bad Gateway to %s",
+                                cfg.routes[route_index].proxy_pass);
+                    send_502(client_sock, &http_req);
+                }
+            } else {
+                send_file_response(client_sock, &http_req, cfg.routes[route_index],
+                                   files_buffer, FILES_BUFFER_SIZE);
+            }
+        }
+    } else {
+        log_message(&lg, LOG_ERROR, "something went wrong\n");
+        send_500(client_sock, &http_req);
+        close(client_sock);
+        return;
+    }
+
+    close(client_sock);
+}
+
+void handle_client_task(void *args) {
+    int client_sock = *((int *)args);
+    free(args);
+    handle_http_request(client_sock);
 }
 
 int main() {
@@ -62,84 +129,30 @@ int main() {
     }
     log_message(&lg, LOG_INFO, "Thread pool initialized with %d threads", cfg.server.workers);
 
-
-    char               buffer[cfg.server.sock_buffer_size];
-    int                serv_sock, client_sock, route_index;
+    int                serv_sock, client_sock;
     struct sockaddr_in client_addr;
     socklen_t          client_len = sizeof(client_addr);
 
-    serv_sock =  init_socket(&cfg.server);
+    serv_sock = init_socket(&cfg.server);
     log_message(&lg, LOG_INFO, "Server listening on port %d...", cfg.server.port);
     
     while (1) {
-        // todo :add multi threads
         client_sock = accept(serv_sock, (struct sockaddr *)&client_addr, &client_len);
 
         if (client_sock < 0) {
             log_message(&lg, LOG_ERROR, "ERROR on accept");
-            close(serv_sock);
-            exit(1);
-        }
-
-        int n     = read(client_sock, buffer, sizeof(buffer));
-        buffer[n] = '\0';
-
-        char buf2[sizeof(buffer)];
-
-        strcpy(buf2, buffer); // tofix
-
-        http_request http_req;
-        memset(&http_req, 0, sizeof(http_req));
-
-        http_req.client_addr = &client_addr;
-
-        parse_http_request(buffer, &http_req);
-
-        if (!http_req.is_invalid) {
-
-            route_index = path_router(cfg.routes, http_req.endpoint);
-
-            if (route_index == -1) {
-                // todo :  make it more clear
-                log_message(&lg, LOG_WARN, "No matching route for %s", http_req.endpoint);
-                send_404(client_sock, &http_req);
-                close(client_sock);
-                continue;
-            } else {
-                int is_allowed =
-                    is_allowed_method(cfg.routes[route_index].methods, http_req.method);
-                if (!is_allowed) {
-                    log_message(&lg, LOG_WARN, "Method %s not allowed for %s", http_req.method,
-                                http_req.endpoint);
-                    send_405(client_sock, &http_req);
-                    close(client_sock);
-                    continue;
-                }
-
-                if (cfg.routes[route_index].proxy_pass != NULL) {
-                    log_message(&lg, LOG_INFO, "Serving %s for %s", cfg.routes[route_index].root,
-                                http_req.uri);
-                    int status = handle_proxy(client_sock, &cfg.routes[route_index], buf2);
-
-                    if (status != 0) {
-                        log_message(&lg, LOG_WARN, "Bad Gateway to %s",
-                                    cfg.routes[route_index].proxy_pass);
-                        send_502(client_sock, &http_req);
-                    }
-                } else {
-                    send_file_response(client_sock, &http_req, cfg.routes[route_index],
-                                       files_buffer, BUFFER_SIZE);
-                }
-            }
-
-        } else {
-            log_message(&lg, LOG_ERROR, "something went wrong\n");
-            send_500(client_sock, &http_req);
-            close(client_sock);
             continue;
         }
 
-        close(client_sock);
+        int *client_sock_ptr = malloc(sizeof(int));
+        if (!client_sock_ptr) {
+            log_message(&lg, LOG_ERROR, "Failed to allocate memory for client socket");
+            close(client_sock);
+            continue;
+        }
+        *client_sock_ptr = client_sock;
+
+        add_task(queue, handle_client_task, client_sock_ptr);
     }
 
     kill_serv(serv_sock);

@@ -13,7 +13,7 @@ sem_t           sem_queue;
 pthread_t *init_thread_pool(int num_threads, task_queue *queue) {
 
     pthread_mutex_init(&mutex_queue, NULL);
-    sem_init(&sem_queue, 0, 1);
+    sem_init(&sem_queue, 0, 0);
 
     if (queue == NULL)
         queue = create_task_queue();
@@ -23,9 +23,20 @@ pthread_t *init_thread_pool(int num_threads, task_queue *queue) {
         perror("Failed to allocate memory for threads");
         return NULL;
     }
+    
     for (int i = 0; i < num_threads; i++) {
-        if (pthread_create(&threads[i], NULL, start_thread, queue) != 0) {
+        thread_args *args = malloc(sizeof(thread_args));
+        if (!args) {
+            perror("Failed to allocate memory for thread args");
+            free(threads);
+            return NULL;
+        }
+        args->id = i;
+        args->queue = queue;
+        
+        if (pthread_create(&threads[i], NULL, start_thread, args) != 0) {
             perror("Failed to create thread");
+            free(args);
             free(threads);
             return NULL;
         }
@@ -41,14 +52,18 @@ int destroy_thread_pool(int num_threads, pthread_t *threads) {
     return 0;
 }
 
-void *start_thread(void *arg) {
-    task_queue *queue = (task_queue *)arg;
+void *start_thread(void *args) {
+    thread_args *thread_data = (thread_args *)args;
+    int thread_id = thread_data->id;
+    task_queue *queue = thread_data->queue;
+    
     while (1) {
         sem_wait(&sem_queue);
         task *t = (task *)get_task(queue);
         sem_post(&sem_queue);
         if (t) {
-            t->function(t->arg);
+            printf("Executing task by thread [%d] ...\n", thread_id);
+            t->function(t->args);
             free(t);
         }
     }
@@ -82,7 +97,7 @@ int destroy_task_queue(task_queue *queue) {
     return 0;
 }
 
-void add_task(task_queue *queue, void (*function)(void *), void *arg) {
+void add_task(task_queue *queue, void (*function)(void *), void *args) {
 
     pthread_mutex_lock(&mutex_queue);
     if (!queue)
@@ -95,7 +110,7 @@ void add_task(task_queue *queue, void (*function)(void *), void *arg) {
     }
 
     new_node->task.function = function;
-    new_node->task.arg      = arg;
+    new_node->task.args      = args;
     new_node->next          = NULL;
 
     if (queue->last) {
@@ -107,6 +122,8 @@ void add_task(task_queue *queue, void (*function)(void *), void *arg) {
     queue->last = new_node;
     queue->queue_size++;
     pthread_mutex_unlock(&mutex_queue);
+
+    sem_post(&sem_queue);
 }
 
 void *get_task(task_queue *queue) {
@@ -121,13 +138,13 @@ void *get_task(task_queue *queue) {
         queue->last = NULL;
     }
 
-    void *arg                = node->task.arg;
+    void *args                = node->task.args;
     void (*function)(void *) = node->task.function;
 
     task *ret_task = malloc(sizeof(task));
     if (ret_task) {
         ret_task->function = function;
-        ret_task->arg      = arg;
+        ret_task->args      = args;
     }
 
     free(node);
