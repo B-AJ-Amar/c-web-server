@@ -1,3 +1,6 @@
+#include "proxy.h"
+#include "config.h"
+#include "logger.h"
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <netinet/in.h>
@@ -6,10 +9,6 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
-
-#include "config.h"
-#include "logger.h"
-#include "proxy.h"
 
 int parse_proxy(route_config *route) {
     if (route->proxy_pass) {

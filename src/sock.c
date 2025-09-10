@@ -1,3 +1,6 @@
+#include "config.h"
+#include "http_parser.h"
+#include "logger.h"
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <netinet/in.h>
@@ -6,10 +9,6 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
-
-#include "config.h"
-#include "http_parser.h"
-#include "logger.h"
 
 #define HTTP_RESPONSE_502 "HTTP/1.1 502 Bad Gateway\r\nContent-Length: 11\r\n\r\nBad Gateway"
 #define HTTP_RESPONSE_500                                                                          \

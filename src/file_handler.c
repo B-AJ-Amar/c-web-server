@@ -1,13 +1,12 @@
 
 
+#include "file_handler.h"
+#include "config.h"
+#include "http_status.h"
+#include "logger.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include "config.h"
-#include "file_handler.h"
-#include "http_status.h"
-#include "logger.h"
 
 char *get_file_path(const char *uri, route_config router) {
 

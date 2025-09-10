@@ -1,11 +1,10 @@
+#include "http_parser.h"
 #include <netinet/in.h>
 #include <regex.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
-#include "http_parser.h"
 
 regex_t uri_regex;
 
