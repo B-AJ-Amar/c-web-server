@@ -98,3 +98,24 @@ int send_file(int client_sock, const char *filepath, char *buffer, size_t buffer
 
     return 1;
 }
+
+
+char* read_request_head_line(int client_sock, char *buffer, int buffer_size,int* readed_len) {
+
+    ssize_t n = read(client_sock, buffer , buffer_size);
+    if (n <= 0) return NULL;
+    
+    buffer[n] = '\0';
+    *readed_len = n;
+    char* find_endl = strstr(buffer, "\r\n");
+    if (find_endl) {
+        char *head_line = malloc(sizeof(find_endl-buffer) + 1);
+        if (head_line) {
+            strncpy(head_line, buffer, find_endl-buffer);
+            head_line[find_endl-buffer] = '\0';
+        }
+        return head_line;
+    }
+
+    return NULL;
+}

@@ -14,10 +14,11 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-void handle_http_request(int client_sock) {
+void handle_http_request(int client_sock) {    
     char *buffer      = get_thread_buffer();
     int   buffer_size = cfg.server.sock_buffer_size;
-
+    int readed_len;
+    
     if (!buffer) {
         log_message(&lg, LOG_ERROR, "Failed to get thread buffer");
         send_500(client_sock, NULL);
@@ -25,21 +26,17 @@ void handle_http_request(int client_sock) {
         return;
     }
 
-    int n     = read(client_sock, buffer, buffer_size - 1);
-    buffer[n] = '\0';
-
-    char buf2[n + 1];
-    strcpy(buf2, buffer); // tofix
+    char* head_line = read_request_head_line(client_sock,buffer,buffer_size,&readed_len);
 
     http_request http_req;
     memset(&http_req, 0, sizeof(http_req));
+
+    parse_request_line(head_line,&http_req);
 
     struct sockaddr_in client_addr;
     socklen_t          client_len = sizeof(client_addr);
     getpeername(client_sock, (struct sockaddr *)&client_addr, &client_len);
     http_req.client_addr = &client_addr;
-
-    parse_http_request(buffer, &http_req);
 
     if (!http_req.is_invalid) {
         int route_index = path_router(cfg.routes, http_req.endpoint);
@@ -61,9 +58,9 @@ void handle_http_request(int client_sock) {
             }
 
             if (cfg.routes[route_index].proxy_pass != NULL) {
-                log_message(&lg, LOG_INFO, "Serving %s for %s", cfg.routes[route_index].root,
-                            http_req.uri);
-                int status = handle_proxy(client_sock, &cfg.routes[route_index], buf2);
+                log_message(&lg, LOG_INFO, "Forwarding %s to %s", http_req.uri, cfg.routes[route_index].proxy_pass
+                            );
+                int status = handle_proxy(client_sock, &cfg.routes[route_index], buffer,buffer_size,readed_len);
 
                 if (status != 0) {
                     log_message(&lg, LOG_WARN, "Bad Gateway to %s",
@@ -71,6 +68,7 @@ void handle_http_request(int client_sock) {
                     send_502(client_sock, &http_req);
                 }
             } else {
+                parse_http_request(buffer, &http_req);
                 send_file_response(client_sock, &http_req, cfg.routes[route_index], buffer,
                                    buffer_size);
             }

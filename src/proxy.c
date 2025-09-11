@@ -9,6 +9,8 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <sys/select.h>     
+#include <errno.h>          
 
 int parse_proxy(route_config *route) {
     if (route->proxy_pass) {
@@ -50,12 +52,15 @@ int parse_proxy(route_config *route) {
     return 1;
 }
 
-int handle_proxy(int client_sock, route_config *route, char *client_request) {
-    int                backend_sock = socket(AF_INET, SOCK_STREAM, 0);
-    struct sockaddr_in backend_addr;
+//  todo : use epoll of better performance
+int handle_proxy(int client_sock, route_config *route, char* buffer, int buffer_size, int readed) {
+    int backend_sock = socket(AF_INET, SOCK_STREAM, 0);
+    if (backend_sock < 0) return 1;
+
+
+    struct sockaddr_in backend_addr = {0};
     backend_addr.sin_family = AF_INET;
     backend_addr.sin_port   = htons(route->proxy->port ? route->proxy->port : 80);
-    inet_pton(AF_INET, route->proxy->host, &backend_addr.sin_addr);
 
     if (inet_pton(AF_INET, route->proxy->host, &backend_addr.sin_addr) <= 0) {
         struct hostent *he = gethostbyname(route->proxy->host);
@@ -66,21 +71,78 @@ int handle_proxy(int client_sock, route_config *route, char *client_request) {
         memcpy(&backend_addr.sin_addr, he->h_addr_list[0], he->h_length);
     }
 
-    if (connect(backend_sock, (struct sockaddr *)&backend_addr, sizeof(backend_addr)) < 0)
-        return 1;
-
-    write(backend_sock, client_request, strlen(client_request));
-
-    char proxy_buf[8192];
-    int  n = recv(backend_sock, proxy_buf, sizeof(proxy_buf), MSG_WAITALL);
-    if (n < 0) {
+    if (connect(backend_sock, (struct sockaddr *)&backend_addr, sizeof(backend_addr)) < 0) {
         close(backend_sock);
         return 1;
     }
 
-    write(client_sock, proxy_buf, n);
+    ssize_t sent = 0;
+    while (sent < readed) {
+        ssize_t w = write(backend_sock, buffer + sent, readed - sent);
+        if (w <= 0) {
+            close(backend_sock);
+            return 1;
+        }
+        sent += w;
+    }
 
+
+    fd_set fds;
+    int maxfd = (client_sock > backend_sock ? client_sock : backend_sock) + 1;
+
+    for (;;) {
+        log_message(&lg, LOG_DEBUG, "[handle_proxy_new] select : loop");
+        FD_ZERO(&fds);
+        FD_SET(client_sock, &fds);
+        FD_SET(backend_sock, &fds);
+
+        int activity = select(maxfd, &fds, NULL, NULL, NULL);
+        if (activity < 0) {
+            log_message(&lg, LOG_ERROR, "[handle_proxy_new] select() failed");
+            break;
+        }
+
+        // client -> backend
+        if (FD_ISSET(client_sock, &fds)) {
+            ssize_t n = recv(client_sock, buffer, buffer_size, 0);
+            if (n <= 0) {
+                log_message(&lg, LOG_INFO, "[handle_proxy_new] client closed");
+                break;
+            }
+            log_message(&lg, LOG_DEBUG, "[handle_proxy_new] client->backend n=%zd", n);
+            ssize_t sent = 0;
+            while (sent < n) {
+                ssize_t w = write(backend_sock, buffer + sent, n - sent);
+                if (w <= 0) {
+                    log_message(&lg, LOG_ERROR, "[handle_proxy_new] write to backend failed");
+                    goto cleanup;
+                }
+                sent += w;
+            }
+        }
+
+        // backend -> client
+        if (FD_ISSET(backend_sock, &fds)) {
+            ssize_t n = recv(backend_sock, buffer, buffer_size, 0);
+            if (n <= 0) {
+                log_message(&lg, LOG_INFO, "[handle_proxy_new] backend closed");
+                break;
+            }
+            log_message(&lg, LOG_DEBUG, "[handle_proxy_new] backend->client n=%zd", n);
+            ssize_t sent = 0;
+            while (sent < n) {
+                ssize_t w = write(client_sock, buffer + sent, n - sent);
+                if (w <= 0) {
+                    log_message(&lg, LOG_ERROR, "[handle_proxy_new] write to client failed");
+                    goto cleanup;
+                }
+                sent += w;
+            }
+        }
+    }
+
+cleanup:
     close(backend_sock);
-
     return 0;
 }
+

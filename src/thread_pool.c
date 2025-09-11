@@ -77,7 +77,7 @@ void *start_thread(void *args) {
         task *t = (task *)get_task(queue);
         sem_post(&sem_queue);
         if (t) {
-            printf("Executing task by thread [%d] ...\n", thread_id);
+            log_message(&lg,LOG_DEBUG,"Executing task by thread [%d] ...\n", thread_id);
             t->function(t->args);
             free(t);
         }

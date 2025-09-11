@@ -45,16 +45,6 @@ void validate_uri(char *uri, http_request *request) {
         request->is_invalid = 1;
     }
 }
-void parse_request_line(char *line, http_request *request) {
-    sscanf(line, "%s %s %s", request->method, request->uri, request->version);
-    validate_http_method(request->method, request);
-    if (request->is_invalid)
-        return;
-    validate_http_version(request->version, request);
-    if (request->is_invalid)
-        return;
-    validate_uri(request->uri, request);
-}
 
 void parse_quary_param(char *line, http_quary_params *quary) {
     char *colon = strchr(line, '=');
@@ -91,6 +81,21 @@ void parse_request_uri(http_request *request) {
         strncpy(request->endpoint, uri, sizeof(request->endpoint));
     }
 }
+
+void parse_request_line(char *line, http_request *request) {
+    sscanf(line, "%s %s %s", request->method, request->uri, request->version);
+    validate_http_method(request->method, request);
+    if (request->is_invalid)
+        return;
+    validate_http_version(request->version, request);
+    if (request->is_invalid)
+        return;
+    validate_uri(request->uri, request);
+
+    parse_request_uri(request);
+}
+
+
 
 void parse_header_line(char *line, http_headers *header) {
     char *colon = strchr(line, ':');
@@ -132,5 +137,4 @@ void parse_http_request(char *request_text, http_request *request) {
         strncpy(request->body, body_start, sizeof(request->body) - 1);
     }
 
-    parse_request_uri(request);
 }
