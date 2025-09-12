@@ -41,6 +41,8 @@ typedef struct http_request {
     char                uri[256];
     char                version[8];
     char                endpoint[256];
+    char* file_path;
+    char* file_ext;
     http_quary_params  *quary;
     http_headers       *headers;
     int                 headers_count;

@@ -9,8 +9,8 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
-#include <sys/select.h>     
-#include <errno.h>          
+#include <sys/select.h>
+#include <errno.h>
 
 int parse_proxy(route_config *route) {
     if (route->proxy_pass) {
@@ -115,7 +115,8 @@ int handle_proxy(int client_sock, route_config *route, char* buffer, int buffer_
                 ssize_t w = write(backend_sock, buffer + sent, n - sent);
                 if (w <= 0) {
                     log_message(&lg, LOG_ERROR, "[handle_proxy_new] write to backend failed");
-                    goto cleanup;
+                    close(backend_sock);
+                    return 0;
                 }
                 sent += w;
             }
@@ -134,15 +135,12 @@ int handle_proxy(int client_sock, route_config *route, char* buffer, int buffer_
                 ssize_t w = write(client_sock, buffer + sent, n - sent);
                 if (w <= 0) {
                     log_message(&lg, LOG_ERROR, "[handle_proxy_new] write to client failed");
-                    goto cleanup;
+                    close(backend_sock);
+                    return 0;
                 }
                 sent += w;
             }
         }
     }
-
-cleanup:
-    close(backend_sock);
-    return 0;
 }
 

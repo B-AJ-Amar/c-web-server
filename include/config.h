@@ -11,9 +11,9 @@ typedef struct {
     char *host;
     int   port;
     int   max_connections;
-    int   sock_buffer_size;
     int   workers;
     char *default_index_name;
+    char *php_cgi_path;
 } server_config;
 
 typedef struct logging_config {

@@ -77,7 +77,7 @@ A lightweight web server written in C, built from scratch to better understand n
   - [ ] Handle receiving large requests (buffer overflow). (i will do this after multi-threading to avoid conflicts)
 
 - **Multi-Threading Support**
-  - [ ] Enable the server to handle multiple clients concurrently using thread pool.
+  - [x] Enable the server to handle multiple clients concurrently using thread pool.
 
 - **Security & HTTPS**
   - [ ] Add basic security checks and input validation.
@@ -106,9 +106,9 @@ The server uses a TOML configuration file (`cws.conf`) to define its behavior. H
 host = "0.0.0.0"              # IP address to bind to (0.0.0.0 for all interfaces)
 port = 8080                   # Port to listen on
 max_connections = 100         # Maximum number of concurrent connections
-sock_buffer_size = 4096       # Socket buffer size in bytes
 workers = 4                   # Number of worker threads (default: 1)
 default_index_name = "index.html"  # Default file to serve for directories
+php_cgi_path = "/usr/bin/php-cgi"  # Path to PHP CGI binary (optional, NULL to disable PHP)
 ```
 
 ### Logging Configuration

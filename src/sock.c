@@ -10,14 +10,6 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-#define HTTP_RESPONSE_502 "HTTP/1.1 502 Bad Gateway\r\nContent-Length: 11\r\n\r\nBad Gateway"
-#define HTTP_RESPONSE_500                                                                          \
-    "HTTP/1.1 500 Internal Server Error\r\nContent-Length: "                                       \
-    "21\r\n\r\nInternal Server Error"
-
-#define HTTP_RESPONSE_405                                                                          \
-    "HTTP/1.1 405 Method Not Allowed\r\nContent-Length: 18\r\n\r\nMethod Not Allowed"
-#define HTTP_RESPONSE_404 "HTTP/1.1 404 Not Found\r\nContent-Length: 9\r\n\r\nNot Found"
 
 int init_socket(server_config *cfg) {
     struct sockaddr_in serv_addr;
@@ -49,32 +41,6 @@ int init_socket(server_config *cfg) {
     return serv_sock;
 }
 
-ssize_t send_500(int client_sock, http_request *req) {
-    ssize_t result = write(client_sock, HTTP_RESPONSE_500, strlen(HTTP_RESPONSE_500));
-    if (req != NULL)
-        http_log(&lg, req, 500);
-    return result;
-}
-
-ssize_t send_502(int client_sock, http_request *req) {
-    ssize_t result = write(client_sock, HTTP_RESPONSE_502, strlen(HTTP_RESPONSE_502));
-    if (req != NULL)
-        http_log(&lg, req, 502);
-    return result;
-}
-ssize_t send_404(int client_sock, http_request *req) {
-    ssize_t result = write(client_sock, HTTP_RESPONSE_404, strlen(HTTP_RESPONSE_404));
-    if (req != NULL)
-        http_log(&lg, req, 404);
-    return result;
-}
-
-ssize_t send_405(int client_sock, http_request *req) {
-    ssize_t result = write(client_sock, HTTP_RESPONSE_405, strlen(HTTP_RESPONSE_405));
-    if (req != NULL)
-        http_log(&lg, req, 405);
-    return result;
-}
 
 int send_file(int client_sock, const char *filepath, char *buffer, size_t buffer_size) {
     FILE *fp = fopen(filepath, "rb");
@@ -118,4 +84,12 @@ char* read_request_head_line(int client_sock, char *buffer, int buffer_size,int*
     }
 
     return NULL;
+}
+
+FILE* read_http_request(int client_sock, char *buffer, int buffer_size,int readed_len){
+    if (buffer_size > readed_len) NULL;
+
+    FILE* req_file = tmpfile();
+    
+
 }

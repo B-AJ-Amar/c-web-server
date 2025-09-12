@@ -6,6 +6,9 @@
 #include "proxy.h"
 #include "sock.h"
 #include "thread_pool.h"
+#include "file_handler.h"
+#include "http_handler.h"
+#include "http_status.h"
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <stdio.h>
@@ -14,9 +17,9 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-void handle_http_request(int client_sock) {    
+void handle_http_request(int client_sock) {        
     char *buffer      = get_thread_buffer();
-    int   buffer_size = cfg.server.sock_buffer_size;
+    int   buffer_size = BUFFER_SIZE;
     int readed_len;
     
     if (!buffer) {
@@ -25,7 +28,7 @@ void handle_http_request(int client_sock) {
         close(client_sock);
         return;
     }
-
+    
     char* head_line = read_request_head_line(client_sock,buffer,buffer_size,&readed_len);
 
     http_request http_req;
@@ -48,8 +51,9 @@ void handle_http_request(int client_sock) {
             close(client_sock);
             return;
         } else {
-            int is_allowed = is_allowed_method(cfg.routes[route_index].methods, http_req.method);
-            if (!is_allowed) {
+            log_message(&lg, LOG_DEBUG, "Router : cthe choosen route is %d , %s ",route_index,&cfg.routes[route_index].path);
+
+            if (!is_allowed_method(cfg.routes[route_index].methods, http_req.method)) {
                 log_message(&lg, LOG_WARN, "Method %s not allowed for %s", http_req.method,
                             http_req.endpoint);
                 send_405(client_sock, &http_req);
@@ -58,8 +62,7 @@ void handle_http_request(int client_sock) {
             }
 
             if (cfg.routes[route_index].proxy_pass != NULL) {
-                log_message(&lg, LOG_INFO, "Forwarding %s to %s", http_req.uri, cfg.routes[route_index].proxy_pass
-                            );
+                // ? proxy                
                 int status = handle_proxy(client_sock, &cfg.routes[route_index], buffer,buffer_size,readed_len);
 
                 if (status != 0) {
@@ -68,9 +71,22 @@ void handle_http_request(int client_sock) {
                     send_502(client_sock, &http_req);
                 }
             } else {
-                parse_http_request(buffer, &http_req);
-                send_file_response(client_sock, &http_req, cfg.routes[route_index], buffer,
-                                   buffer_size);
+                // ? http and static files 
+                http_req.file_path = get_file_path(http_req.uri, cfg.routes[route_index]);
+                http_req.file_ext  = get_file_extension(strdup(http_req.file_path));
+
+                if (is_php(http_req.file_ext)){
+                    // handle_php()
+                    send_status_response(client_sock,HTTP_NOT_IMPLEMENTED,&http_req);
+                }
+                else if (!strcmp(http_req.method,HTTP_GET) ) {
+                    // ? this must be GET 
+                    // ? for now i will not care about the headers
+                    send_file_response(client_sock, &http_req, cfg.routes[route_index], buffer,
+                                       buffer_size);
+                }
+                else send_404(client_sock, &http_req);
+                                
             }
         }
     } else {

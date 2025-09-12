@@ -8,7 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-char *get_file_path(const char *uri, route_config router) {
+char *get_file_path(char *uri, route_config router) {
 
     char       *final_uri  = NULL;
     const char *index_file = router.index;
@@ -47,9 +47,15 @@ char *get_file_path(const char *uri, route_config router) {
 }
 
 char *get_file_extension(char *file_path) {
-    strtok(file_path, ".");
-    char *ext = strtok(NULL, ".");
-    return ext;
+    if (!file_path) return NULL;
+    char *end = file_path + strlen(file_path) - 1;
+    while (end >= file_path) {
+        if (*end == '.') return end + 1;
+        
+        if (*end == '/') return NULL;
+        end--;
+    }
+    return NULL;
 }
 
 char *read_file(char *file_path, size_t *file_size, int *status) {
@@ -76,4 +82,10 @@ char *read_file(char *file_path, size_t *file_size, int *status) {
     fclose(file);
     *status = HTTP_OK;
     return buffer;
+}
+
+int is_php(char* ext){
+    if (!ext) return 0;
+    if (strcmp(ext,"php") == 0) return 1;
+    return 0;
 }

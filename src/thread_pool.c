@@ -2,6 +2,7 @@
 
 #include "thread_pool.h"
 #include "config.h"
+#include "http_handler.h"
 #include <pthread.h>
 #include <semaphore.h>
 #include <stdio.h>
@@ -63,12 +64,12 @@ void *start_thread(void *args) {
     int          thread_id   = thread_data->id;
     task_queue  *queue       = thread_data->queue;
 
-    char *buffer = malloc(cfg.server.sock_buffer_size);
+    char *buffer = malloc(BUFFER_SIZE);
     if (!buffer) {
         perror("Failed to allocate memory for thread buffer");
         return NULL;
     }
-    memset(buffer, 0, cfg.server.sock_buffer_size);
+    memset(buffer, 0, BUFFER_SIZE);
 
     pthread_setspecific(buffer_key, buffer);
 
@@ -77,7 +78,7 @@ void *start_thread(void *args) {
         task *t = (task *)get_task(queue);
         sem_post(&sem_queue);
         if (t) {
-            log_message(&lg,LOG_DEBUG,"Executing task by thread [%d] ...\n", thread_id);
+            log_message(&lg,LOG_DEBUG,"Executing task by thread [%d] : ...\n", thread_id);
             t->function(t->args);
             free(t);
         }

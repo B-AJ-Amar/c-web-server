@@ -28,8 +28,14 @@ static const ContentTypes CONTENT_TYPES = {.html = "text/html",
                                            .txt  = "text/plain"};
 
 char *get_http_date();
+
+ssize_t send_500(int client_sock, http_request *req);
+ssize_t send_502(int client_sock, http_request *req);
+ssize_t send_404(int client_sock, http_request *req);
+ssize_t send_405(int client_sock, http_request *req);
+
 int   send_file_response(int client_sock, http_request *req, route_config router, char *buffer,
                          int buffer_size);
-int   send_status_response(int client_sock, int status_code);
+int   send_status_response(int client_sock, int status_code, http_request *req);
 
 #endif // HTTP_RESPONSE_H
