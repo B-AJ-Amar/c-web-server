@@ -21,7 +21,6 @@
     "HTTP/1.1 405 Method Not Allowed\r\nContent-Length: 18\r\n\r\nMethod Not Allowed"
 #define HTTP_RESPONSE_404 "HTTP/1.1 404 Not Found\r\nContent-Length: 9\r\n\r\nNot Found"
 
-
 char *get_http_date() {
     time_t    now = time(NULL);
     struct tm gm_time;
@@ -56,7 +55,6 @@ const char *get_content_type(const char *ext) {
         return CONTENT_TYPES.txt;
 }
 
-
 ssize_t send_500(int client_sock, http_request *req) {
     ssize_t result = write(client_sock, HTTP_RESPONSE_500, strlen(HTTP_RESPONSE_500));
     if (req != NULL)
@@ -83,7 +81,6 @@ ssize_t send_405(int client_sock, http_request *req) {
         http_log(&lg, req, 405);
     return result;
 }
-
 
 int send_file_response(int client_sock, http_request *req, route_config router, char *buffer,
                        int buffer_size) {
@@ -120,7 +117,7 @@ int send_file_response(int client_sock, http_request *req, route_config router, 
     return 1;
 }
 
-int send_status_response(int client_sock, int status_code,http_request *req) {
+int send_status_response(int client_sock, int status_code, http_request *req) {
     const char *reason_phrase = get_reason_phrase(status_code);
     if (!reason_phrase) {
         log_message(&lg, LOG_ERROR, "[send_status_response] Invalid status code: %d", status_code);

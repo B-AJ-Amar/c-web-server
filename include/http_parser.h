@@ -20,6 +20,8 @@
 
 #include <netinet/in.h>
 #include <regex.h>
+#include <stdbool.h>
+#include <stdio.h>
 
 extern const char *http_methods[HTTP_METHODS_LEN];
 extern const char *http_versions[HTTP_VERSIONS_LEN];
@@ -41,8 +43,11 @@ typedef struct http_request {
     char                uri[256];
     char                version[8];
     char                endpoint[256];
-    char* file_path;
-    char* file_ext;
+    char               *file_path;
+    char               *file_ext;
+    FILE               *req_data;
+    bool                use_file;
+    char               *str_quary_params;
     http_quary_params  *quary;
     http_headers       *headers;
     int                 headers_count;
@@ -72,5 +77,7 @@ void parse_http_request(char *request_text, http_request *request);
 void free_uri_regex();
 void validate_uri(char *uri, http_request *request);
 int  init_uri_regex();
+
+char **parse_env_cgi_php(http_request *req, char *buffer, FILE *file_buffer, int *readed_len);
 
 #endif // HTTP_PARSER_H

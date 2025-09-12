@@ -69,7 +69,8 @@ void parse_request_uri(http_request *request) {
         strncpy(query_params, query_separator + 1, sizeof(query_params) - 1);
         query_params[sizeof(query_params) - 1] = '\0';
 
-        char *param = strtok(query_params, "&");
+        request->str_quary_params = strdup(query_params);
+        char *param               = strtok(query_params, "&");
         while (param != NULL) {
             request->quary = realloc(request->quary,
                                      sizeof(http_quary_params) * (request->quary_params_count + 1));
@@ -94,8 +95,6 @@ void parse_request_line(char *line, http_request *request) {
 
     parse_request_uri(request);
 }
-
-
 
 void parse_header_line(char *line, http_headers *header) {
     char *colon = strchr(line, ':');
@@ -136,5 +135,30 @@ void parse_http_request(char *request_text, http_request *request) {
         body_start += 4; // skip \n\r\n\r
         strncpy(request->body, body_start, sizeof(request->body) - 1);
     }
+}
 
+char **parse_env_cgi_php(http_request *req, char *buffer, FILE *file_buffer, int *readed_len) {
+
+    char **envp = malloc(7 * sizeof(char *));
+
+    envp[0] = strdup("GATEWAY_INTERFACE=CGI/1.1");
+
+    envp[1] = malloc(256);
+    sprintf(envp[1], "REQUEST_METHOD=%s", req->method);
+
+    envp[2] = malloc(512);
+    sprintf(envp[2], "SCRIPT_FILENAME=%s", req->file_path);
+
+    envp[3] = malloc(512);
+    sprintf(envp[3], "QUERY_STRING=%s", req->str_quary_params ? req->str_quary_params : "");
+
+    envp[4] = malloc(256);
+    sprintf(envp[4], "SERVER_PROTOCOL=%s", req->version);
+
+    envp[5] = strdup("REDIRECT_STATUS=200");
+    envp[6] = NULL;
+
+    // todo add the other vars and body
+
+    return envp;
 }

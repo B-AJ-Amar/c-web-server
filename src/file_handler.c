@@ -47,12 +47,15 @@ char *get_file_path(char *uri, route_config router) {
 }
 
 char *get_file_extension(char *file_path) {
-    if (!file_path) return NULL;
+    if (!file_path)
+        return NULL;
     char *end = file_path + strlen(file_path) - 1;
     while (end >= file_path) {
-        if (*end == '.') return end + 1;
-        
-        if (*end == '/') return NULL;
+        if (*end == '.')
+            return end + 1;
+
+        if (*end == '/')
+            return NULL;
         end--;
     }
     return NULL;
@@ -84,8 +87,10 @@ char *read_file(char *file_path, size_t *file_size, int *status) {
     return buffer;
 }
 
-int is_php(char* ext){
-    if (!ext) return 0;
-    if (strcmp(ext,"php") == 0) return 1;
+int is_php(char *ext) {
+    if (!ext)
+        return 0;
+    if (strcmp(ext, "php") == 0)
+        return 1;
     return 0;
 }

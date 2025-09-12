@@ -2,15 +2,15 @@
 #include "config.h"
 #include "logger.h"
 #include <arpa/inet.h>
+#include <errno.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/select.h>
 #include <sys/socket.h>
 #include <unistd.h>
-#include <sys/select.h>
-#include <errno.h>
 
 int parse_proxy(route_config *route) {
     if (route->proxy_pass) {
@@ -53,14 +53,14 @@ int parse_proxy(route_config *route) {
 }
 
 //  todo : use epoll of better performance
-int handle_proxy(int client_sock, route_config *route, char* buffer, int buffer_size, int readed) {
+int handle_proxy(int client_sock, route_config *route, char *buffer, int buffer_size, int readed) {
     int backend_sock = socket(AF_INET, SOCK_STREAM, 0);
-    if (backend_sock < 0) return 1;
-
+    if (backend_sock < 0)
+        return 1;
 
     struct sockaddr_in backend_addr = {0};
-    backend_addr.sin_family = AF_INET;
-    backend_addr.sin_port   = htons(route->proxy->port ? route->proxy->port : 80);
+    backend_addr.sin_family         = AF_INET;
+    backend_addr.sin_port           = htons(route->proxy->port ? route->proxy->port : 80);
 
     if (inet_pton(AF_INET, route->proxy->host, &backend_addr.sin_addr) <= 0) {
         struct hostent *he = gethostbyname(route->proxy->host);
@@ -86,9 +86,8 @@ int handle_proxy(int client_sock, route_config *route, char* buffer, int buffer_
         sent += w;
     }
 
-
     fd_set fds;
-    int maxfd = (client_sock > backend_sock ? client_sock : backend_sock) + 1;
+    int    maxfd = (client_sock > backend_sock ? client_sock : backend_sock) + 1;
 
     for (;;) {
         log_message(&lg, LOG_DEBUG, "[handle_proxy_new] select : loop");
@@ -143,4 +142,3 @@ int handle_proxy(int client_sock, route_config *route, char* buffer, int buffer_
         }
     }
 }
-

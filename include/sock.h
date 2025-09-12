@@ -8,6 +8,7 @@
 
 int init_socket(server_config *cfg);
 
-int send_file(int client_sock, const char *filepath, char *buffer, size_t buffer_size);
-char* read_request_head_line(int client_sock, char *buffer, int buffer_size,int* readed_len);
+int   send_file(int client_sock, const char *filepath, char *buffer, size_t buffer_size);
+char *read_request_head_line(int client_sock, char *buffer, int buffer_size, int *readed_len);
+FILE *read_long_http_request(int client_sock, char *buffer, int buffer_size, int *readed_len);
 #endif // SOCK_H

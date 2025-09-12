@@ -10,7 +10,6 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-
 int init_socket(server_config *cfg) {
     struct sockaddr_in serv_addr;
     int                serv_sock = socket(AF_INET, SOCK_STREAM, 0);
@@ -41,7 +40,6 @@ int init_socket(server_config *cfg) {
     return serv_sock;
 }
 
-
 int send_file(int client_sock, const char *filepath, char *buffer, size_t buffer_size) {
     FILE *fp = fopen(filepath, "rb");
     if (!fp)
@@ -65,20 +63,20 @@ int send_file(int client_sock, const char *filepath, char *buffer, size_t buffer
     return 1;
 }
 
+char *read_request_head_line(int client_sock, char *buffer, int buffer_size, int *readed_len) {
 
-char* read_request_head_line(int client_sock, char *buffer, int buffer_size,int* readed_len) {
+    ssize_t n = read(client_sock, buffer, buffer_size);
+    if (n <= 0)
+        return NULL;
 
-    ssize_t n = read(client_sock, buffer , buffer_size);
-    if (n <= 0) return NULL;
-    
-    buffer[n] = '\0';
-    *readed_len = n;
-    char* find_endl = strstr(buffer, "\r\n");
+    buffer[n]       = '\0';
+    *readed_len     = n;
+    char *find_endl = strstr(buffer, "\r\n");
     if (find_endl) {
-        char *head_line = malloc(sizeof(find_endl-buffer) + 1);
+        char *head_line = malloc(sizeof(find_endl - buffer) + 1);
         if (head_line) {
-            strncpy(head_line, buffer, find_endl-buffer);
-            head_line[find_endl-buffer] = '\0';
+            strncpy(head_line, buffer, find_endl - buffer);
+            head_line[find_endl - buffer] = '\0';
         }
         return head_line;
     }
@@ -86,10 +84,22 @@ char* read_request_head_line(int client_sock, char *buffer, int buffer_size,int*
     return NULL;
 }
 
-FILE* read_http_request(int client_sock, char *buffer, int buffer_size,int readed_len){
-    if (buffer_size > readed_len) NULL;
+FILE *read_long_http_request(int client_sock, char *buffer, int buffer_size, int *readed_len) {
+    if (buffer_size > *readed_len)
+        return NULL;
 
-    FILE* req_file = tmpfile();
-    
+    FILE *req_file = tmpfile();
 
+    fwrite(buffer, 1, *readed_len, req_file);
+
+    ssize_t n, total_read = *readed_len;
+    while ((n = read(client_sock, buffer, buffer_size)) > 0) {
+        fwrite(buffer, 1, n, req_file);
+        total_read += n;
+        if (n < buffer_size)
+            break; // no more data
+    }
+    rewind(req_file);
+    *readed_len = total_read;
+    return req_file;
 }
