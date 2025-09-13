@@ -87,13 +87,14 @@ char *read_request_head_line(int client_sock, char *buffer, int buffer_size, int
 }
 
 FILE *read_long_http_request(int client_sock, char *buffer, int buffer_size, int *readed_len) {
-    // if (buffer_size> *readed_len) return NULL;
-    
+    if (buffer_size > *readed_len)
+        return NULL;
+
     FILE *req_file = tmpfile();
     if (!req_file) {
         return NULL;
     }
-    
+
     log_message(&lg, LOG_DEBUG, "Reading long HTTP request into temp file %d", fileno(req_file));
     fwrite(buffer, 1, *readed_len, req_file);
 
@@ -101,13 +102,13 @@ FILE *read_long_http_request(int client_sock, char *buffer, int buffer_size, int
     int flags = fcntl(client_sock, F_GETFL, 0);
     fcntl(client_sock, F_SETFL, flags | O_NONBLOCK);
 
-    ssize_t n, total_read = *readed_len;
-    int empty_reads = 0;
-    const int max_empty_reads = 100; 
-    
+    ssize_t   n, total_read = *readed_len;
+    int       empty_reads     = 0;
+    const int max_empty_reads = 100;
+
     while (empty_reads < max_empty_reads) {
         n = read(client_sock, buffer, buffer_size);
-        
+
         if (n > 0) {
             fwrite(buffer, 1, n, req_file);
             total_read += n;
@@ -117,14 +118,14 @@ FILE *read_long_http_request(int client_sock, char *buffer, int buffer_size, int
         } else {
             if (errno == EAGAIN || errno == EWOULDBLOCK) {
                 empty_reads++;
-                usleep(1000); 
+                usleep(1000);
                 continue;
-            } else break;
-            
+            } else
+                break;
         }
     }
     fcntl(client_sock, F_SETFL, flags);
-    
+
     rewind(req_file);
     *readed_len = total_read;
     return req_file;

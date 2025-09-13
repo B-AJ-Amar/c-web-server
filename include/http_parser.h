@@ -49,8 +49,8 @@ typedef struct http_request {
     bool                use_file;
     int                 head_line_len;
     char               *str_quary_params;
-    int         content_len;
-    const char *content_type;
+    int                 content_len;
+    const char         *content_type;
     http_quary_params  *quary;
     http_headers       *headers;
     int                 headers_count;

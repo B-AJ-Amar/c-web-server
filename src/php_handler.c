@@ -47,12 +47,12 @@ int handle_php_request(int client_sock, http_request *req, char *php_cgi_path, c
     } else if (pid > 0) {
         waitpid(pid, NULL, 0);
         close(fd[1]);
-        
+
         send(client_sock, "HTTP/1.1 200 OK\r\n", 17, 0);
-        
+
         int total_sent = 0;
         int n;
-        
+
         while ((n = read(fd[0], buffer, BUFFER_SIZE - 1)) > 0) {
             size_t sent = 0;
             while (sent < n) {
@@ -67,9 +67,9 @@ int handle_php_request(int client_sock, http_request *req, char *php_cgi_path, c
             total_sent += n;
             log_message(&lg, LOG_DEBUG, "Sent %d bytes of CGI output, total: %d", n, total_sent);
         }
-        
+
         close(fd[0]);
-        
+
         if (total_sent > 0) {
             log_message(&lg, LOG_DEBUG, "CGI output complete - sent %d bytes total", total_sent);
             return 1;
