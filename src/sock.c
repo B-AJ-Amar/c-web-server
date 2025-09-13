@@ -73,10 +73,11 @@ char *read_request_head_line(int client_sock, char *buffer, int buffer_size, int
     *readed_len     = n;
     char *find_endl = strstr(buffer, "\r\n");
     if (find_endl) {
-        char *head_line = malloc(sizeof(find_endl - buffer) + 1);
+        size_t head_line_len = find_endl - buffer;
+        char  *head_line     = malloc(head_line_len + 1);
         if (head_line) {
-            strncpy(head_line, buffer, find_endl - buffer);
-            head_line[find_endl - buffer] = '\0';
+            strncpy(head_line, buffer, head_line_len);
+            head_line[head_line_len] = '\0';
         }
         return head_line;
     }

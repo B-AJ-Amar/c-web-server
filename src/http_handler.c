@@ -53,7 +53,7 @@ void handle_http_request(int client_sock) {
             return;
         } else {
             log_message(&lg, LOG_DEBUG, "Router : cthe choosen route is %d , %s ", route_index,
-                        &cfg.routes[route_index].path);
+                        cfg.routes[route_index].path);
 
             if (!is_allowed_method(cfg.routes[route_index].methods, http_req.method)) {
                 log_message(&lg, LOG_WARN, "Method %s not allowed for %s", http_req.method,
@@ -76,17 +76,17 @@ void handle_http_request(int client_sock) {
             } else {
                 // ? http and static files
                 http_req.file_path = get_file_path(http_req.uri, cfg.routes[route_index]);
-                http_req.file_ext  = get_file_extension(strdup(http_req.file_path));
+                http_req.file_ext  = get_file_extension(http_req.file_path);
 
                 if (is_php(http_req.file_ext)) {
                     // handle_php()
-                    FILE *req_data =
-                        read_long_http_request(client_sock, buffer, buffer_size, &readed_len);
-                    if (req_data) {
-                        http_req.req_data = req_data;
-                        http_req.use_file = true;
-                        fclose(req_data);
-                    }
+                    // FILE *req_data =
+                    //     read_long_http_request(client_sock, buffer, buffer_size, &readed_len);
+                    // if (req_data) {
+                    //     http_req.req_data = req_data;
+                    //     http_req.use_file = true;
+                    //     // Don't close here - free_http_request() will handle it
+                    // }
                     handle_php_request(client_sock, &http_req, cfg.server.php_cgi_path, buffer,
                                        &readed_len);
 
@@ -104,9 +104,10 @@ void handle_http_request(int client_sock) {
         log_message(&lg, LOG_ERROR, "something went wrong\n");
         send_500(client_sock, &http_req);
         close(client_sock);
+        free_http_request(&http_req);
         return;
     }
-
+    free_http_request(&http_req);
     close(client_sock);
 }
 

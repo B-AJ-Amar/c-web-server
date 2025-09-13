@@ -52,7 +52,7 @@ typedef struct http_request {
     http_headers       *headers;
     int                 headers_count;
     int                 quary_params_count;
-    char               *body;
+    char                body[4096]; // Fixed-size buffer for request body
     int                 is_invalid;
     struct sockaddr_in *client_addr;
 } http_request;
@@ -79,5 +79,9 @@ void validate_uri(char *uri, http_request *request);
 int  init_uri_regex();
 
 char **parse_env_cgi_php(http_request *req, char *buffer, FILE *file_buffer, int *readed_len);
+void   free_env_cgi_php(char **envp);
+
+void free_http_request(http_request *req);
+void free_http_response(http_response *res);
 
 #endif // HTTP_PARSER_H

@@ -34,7 +34,7 @@ char *get_file_path(char *uri, route_config router) {
             return NULL;
     }
 
-    size_t path_len  = strlen(files_root) + strlen(final_uri);
+    size_t path_len  = strlen(files_root) + 1 + strlen(final_uri);
     char  *file_path = malloc(path_len + 1);
     if (!file_path) {
         free(final_uri);

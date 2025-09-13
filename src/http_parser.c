@@ -1,6 +1,8 @@
 #include "http_parser.h"
+#include "logger.h"
 #include <netinet/in.h>
 #include <regex.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -72,8 +74,16 @@ void parse_request_uri(http_request *request) {
         request->str_quary_params = strdup(query_params);
         char *param               = strtok(query_params, "&");
         while (param != NULL) {
-            request->quary = realloc(request->quary,
-                                     sizeof(http_quary_params) * (request->quary_params_count + 1));
+            http_quary_params *new_quary = realloc(
+                request->quary, sizeof(http_quary_params) * (request->quary_params_count + 1));
+            if (!new_quary) {
+                // If realloc fails, free existing memory and break
+                free(request->quary);
+                request->quary              = NULL;
+                request->quary_params_count = 0;
+                break;
+            }
+            request->quary = new_quary;
             parse_quary_param(param, &request->quary[request->quary_params_count]);
             request->quary_params_count++;
             param = strtok(NULL, "&");
@@ -158,7 +168,45 @@ char **parse_env_cgi_php(http_request *req, char *buffer, FILE *file_buffer, int
     envp[5] = strdup("REDIRECT_STATUS=200");
     envp[6] = NULL;
 
+    log_message(&lg, LOG_DEBUG, "CGI SCRIPT_FILENAME: %s", envp[2]);
     // todo add the other vars and body
 
     return envp;
+}
+
+void free_env_cgi_php(char **envp) {
+    if (!envp)
+        return;
+
+    for (int i = 0; envp[i] != NULL; i++) {
+        free(envp[i]);
+    }
+    free(envp);
+}
+
+void free_http_request(http_request *req) {
+    if (req->file_path) {
+        free(req->file_path);
+        req->file_path = NULL;
+    }
+
+    // file_ext points within file_path, so just set to NULL
+    req->file_ext = NULL;
+
+    if (req->str_quary_params) {
+        free(req->str_quary_params);
+        req->str_quary_params = NULL;
+    }
+    if (req->quary) {
+        free(req->quary);
+        req->quary = NULL;
+    }
+    if (req->headers) {
+        free(req->headers);
+        req->headers = NULL;
+    }
+    if (req->req_data) {
+        fclose(req->req_data);
+        req->req_data = NULL;
+    }
 }

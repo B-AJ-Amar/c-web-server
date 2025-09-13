@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -Iinclude -Ilib -pthread
+CFLAGS = -fsanitize=address -g -O1 -Wall -Wextra -Iinclude -Ilib -pthread
 
 SRC = $(wildcard src/*.c) $(wildcard lib/*.c)
 OBJ = $(patsubst src/%.c, build/%.o, $(wildcard src/*.c)) \
