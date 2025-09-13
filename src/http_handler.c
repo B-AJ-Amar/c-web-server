@@ -79,14 +79,12 @@ void handle_http_request(int client_sock) {
                 http_req.file_ext  = get_file_extension(http_req.file_path);
 
                 if (is_php(http_req.file_ext)) {
-                    // handle_php()
-                    // FILE *req_data =
-                    //     read_long_http_request(client_sock, buffer, buffer_size, &readed_len);
-                    // if (req_data) {
-                    //     http_req.req_data = req_data;
-                    //     http_req.use_file = true;
-                    //     // Don't close here - free_http_request() will handle it
-                    // }
+                    FILE *req_data =
+                        read_long_http_request(client_sock, buffer, buffer_size, &readed_len);
+                    if (req_data) {
+                        http_req.req_data = req_data;
+                        http_req.use_file = true;
+                    }
                     handle_php_request(client_sock, &http_req, cfg.server.php_cgi_path, buffer,
                                        &readed_len);
 

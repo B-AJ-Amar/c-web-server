@@ -47,7 +47,10 @@ typedef struct http_request {
     char               *file_ext;
     FILE               *req_data;
     bool                use_file;
+    int                 head_line_len;
     char               *str_quary_params;
+    int         content_len;
+    const char *content_type;
     http_quary_params  *quary;
     http_headers       *headers;
     int                 headers_count;
@@ -78,7 +81,7 @@ void free_uri_regex();
 void validate_uri(char *uri, http_request *request);
 int  init_uri_regex();
 
-char **parse_env_cgi_php(http_request *req, char *buffer, FILE *file_buffer, int *readed_len);
+char **parse_env_cgi_php(http_request *req, char *buffer, int *readed_len);
 void   free_env_cgi_php(char **envp);
 
 void free_http_request(http_request *req);

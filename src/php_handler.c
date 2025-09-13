@@ -30,7 +30,7 @@ int handle_php_request(int client_sock, http_request *req, char *php_cgi_path, c
         close(fd[0]);
         char *argv[] = {"php-cgi", NULL};
 
-        char **envp = parse_env_cgi_php(req, buffer, req->req_data, readed_len);
+        char **envp = parse_env_cgi_php(req, buffer, readed_len);
         if (!envp) {
             log_message(&lg, LOG_ERROR, "Failed to prepare CGI environment");
             send_500(client_sock, req);
@@ -47,18 +47,35 @@ int handle_php_request(int client_sock, http_request *req, char *php_cgi_path, c
     } else if (pid > 0) {
         waitpid(pid, NULL, 0);
         close(fd[1]);
-        int n = read(fd[0], buffer, BUFFER_SIZE - 1);
-        if (n > 0) {
-            buffer[n] = '\0';
-            send(client_sock, "HTTP/1.1 200 OK\r\n", 17, 0);
-            send(client_sock, buffer, n, 0);
-            log_message(&lg, LOG_DEBUG, "CGI output sent to client : %d , %s", n, buffer);
-            close(fd[0]);
+        
+        send(client_sock, "HTTP/1.1 200 OK\r\n", 17, 0);
+        
+        int total_sent = 0;
+        int n;
+        
+        while ((n = read(fd[0], buffer, BUFFER_SIZE - 1)) > 0) {
+            size_t sent = 0;
+            while (sent < n) {
+                ssize_t s = send(client_sock, buffer + sent, n - sent, 0);
+                if (s <= 0) {
+                    log_message(&lg, LOG_ERROR, "Failed to send CGI output to client");
+                    close(fd[0]);
+                    return 0;
+                }
+                sent += s;
+            }
+            total_sent += n;
+            log_message(&lg, LOG_DEBUG, "Sent %d bytes of CGI output, total: %d", n, total_sent);
+        }
+        
+        close(fd[0]);
+        
+        if (total_sent > 0) {
+            log_message(&lg, LOG_DEBUG, "CGI output complete - sent %d bytes total", total_sent);
             return 1;
         } else {
-            log_message(&lg, LOG_ERROR, "Failed to read CGI output");
+            log_message(&lg, LOG_ERROR, "No CGI output received");
             send_500(client_sock, req);
-            close(fd[0]);
             return 0;
         }
 

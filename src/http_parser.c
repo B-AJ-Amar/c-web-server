@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <ctype.h>
 
 regex_t uri_regex;
 
@@ -77,7 +78,6 @@ void parse_request_uri(http_request *request) {
             http_quary_params *new_quary = realloc(
                 request->quary, sizeof(http_quary_params) * (request->quary_params_count + 1));
             if (!new_quary) {
-                // If realloc fails, free existing memory and break
                 free(request->quary);
                 request->quary              = NULL;
                 request->quary_params_count = 0;
@@ -94,6 +94,7 @@ void parse_request_uri(http_request *request) {
 }
 
 void parse_request_line(char *line, http_request *request) {
+    request->head_line_len = strlen(line);
     sscanf(line, "%s %s %s", request->method, request->uri, request->version);
     validate_http_method(request->method, request);
     if (request->is_invalid)
@@ -115,6 +116,109 @@ void parse_header_line(char *line, http_headers *header) {
         // fix the spaces issue
         while (*header->value == ' ')
             memmove(header->value, header->value + 1, strlen(header->value));
+    }
+}
+
+void parse_header_line_php_cgi(char *line, http_headers *header) {
+    char *colon = strchr(line, ':');
+    if (colon) {
+        *colon = '\0';
+        size_t key_len = strlen(line);
+        for (size_t i = 0; i < key_len && i < sizeof(header->key) - 1; i++) {
+            if (line[i] == '-')
+                header->key[i] = '_';
+            else
+                header->key[i] = toupper((unsigned char)line[i]);
+        }
+        header->key[key_len < sizeof(header->key) - 1 ? key_len : sizeof(header->key) - 1] = '\0';
+
+        strncpy(header->value, colon + 1, sizeof(header->value));
+        // fix the spaces issue
+        while (*header->value == ' ')
+            memmove(header->value, header->value + 1, strlen(header->value));
+    }
+}
+
+void parse_headers_lines(char *request_text, http_request *request, bool skip_head_line, bool use_php_cgi) {
+    char *text_copy = NULL;
+    char *line = NULL;
+    
+    log_message(&lg, LOG_DEBUG, "[parse_headers_lines]Parsing headers from FILE*");
+    if (request->use_file && request->req_data) {
+        log_message(&lg, LOG_DEBUG, "[parse_headers_lines]Parsing headers from FILE*");
+        fseek(request->req_data, 0, SEEK_SET);
+        
+        char line_buffer[2048]; 
+        
+        if (skip_head_line) {
+            if (!fgets(line_buffer, sizeof(line_buffer), request->req_data)) return;
+        }
+        
+        while (fgets(line_buffer, sizeof(line_buffer), request->req_data)) {
+            size_t len = strlen(line_buffer);
+            while (len > 0 && (line_buffer[len-1] == '\n' || line_buffer[len-1] == '\r')) 
+                line_buffer[--len] = '\0';
+            
+            
+            if (len == 0) break; // end of headers
+            
+            http_headers *new_headers = realloc(request->headers, sizeof(http_headers) * (request->headers_count + 1));
+            if (!new_headers) {
+                free(request->headers);
+                request->headers = NULL;
+                request->headers_count = 0;
+                break;
+            }
+            request->headers = new_headers;
+            
+            if (use_php_cgi) {
+                parse_header_line_php_cgi(line_buffer, &request->headers[request->headers_count]);
+            } else {
+                parse_header_line(line_buffer, &request->headers[request->headers_count]);
+            }
+            request->headers_count++;
+        }
+    } else {
+        text_copy = strdup(request_text);
+        line = strtok(text_copy, "\r\n");
+        
+        if (skip_head_line && line) {
+            line = strtok(NULL, "\r\n");
+        }
+
+        if (use_php_cgi) {
+            while (line && strlen(line) > 0) {
+                http_headers *new_headers = realloc(request->headers, sizeof(http_headers) * (request->headers_count + 1));
+                if (!new_headers) {
+                    free(request->headers);
+                    request->headers = NULL;
+                    request->headers_count = 0;
+                    break;
+                }
+                request->headers = new_headers;
+                parse_header_line_php_cgi(line, &request->headers[request->headers_count]);
+                request->headers_count++;
+                line = strtok(NULL, "\r\n");
+            }
+        } else {
+            while (line && strlen(line) > 0) {
+                http_headers *new_headers = realloc(request->headers, sizeof(http_headers) * (request->headers_count + 1));
+                if (!new_headers) {
+                    free(request->headers);
+                    request->headers = NULL;
+                    request->headers_count = 0;
+                    break;
+                }
+                request->headers = new_headers;
+                parse_header_line(line, &request->headers[request->headers_count]);
+                request->headers_count++;
+                line = strtok(NULL, "\r\n");
+            }
+        }
+        
+        if (text_copy) {
+            free(text_copy);
+        }
     }
 }
 
@@ -147,11 +251,45 @@ void parse_http_request(char *request_text, http_request *request) {
     }
 }
 
-char **parse_env_cgi_php(http_request *req, char *buffer, FILE *file_buffer, int *readed_len) {
+char **parse_env_cgi_php(http_request *req, char *buffer, int *readed_len) {
 
-    char **envp = malloc(7 * sizeof(char *));
+    int max_env_vars;
+    
 
-    envp[0] = strdup("GATEWAY_INTERFACE=CGI/1.1");
+    int env_index = 5;
+    log_message(&lg, LOG_DEBUG, "[parse_env_cgi_php] going to parse headers");
+    //! i think that i will do this here : parse_headers_lines(buffer,req,1,1);
+    parse_headers_lines(buffer,req,1,1);
+    max_env_vars = 6 + (req->headers_count ? req->headers_count : 0) + 1;
+    char **envp = malloc(max_env_vars * sizeof(char *));
+
+    
+    if (!strcmp(req->method,HTTP_POST))
+    {
+        for (int i = 0; i < req->headers_count; i++)
+        {
+            envp[++env_index] = malloc(512);
+            if (strcasecmp(req->headers[i].key, "Content-Length") == 0) 
+                sprintf(envp[env_index], "CONTENT_LENGTH=%s", req->headers[i].value);
+            else if (strcasecmp(req->headers[i].key, "Content-Type") == 0) 
+                sprintf(envp[env_index], "CONTENT_TYPE=%s", req->headers[i].value);
+            else
+                sprintf(envp[env_index], "HTTP_%s=%s", req->headers[i].key, req->headers[i].value);
+                    }
+    
+    } else {
+
+        for (int i = 0; i < req->headers_count; i++)
+        {
+            envp[++env_index] = malloc(512);
+            sprintf(envp[env_index], "HTTP_%s=%s", req->headers[i].key, req->headers[i].value);
+        }
+    }  
+
+
+    
+
+     envp[0] = strdup("GATEWAY_INTERFACE=CGI/1.1");
 
     envp[1] = malloc(256);
     sprintf(envp[1], "REQUEST_METHOD=%s", req->method);
@@ -164,9 +302,10 @@ char **parse_env_cgi_php(http_request *req, char *buffer, FILE *file_buffer, int
 
     envp[4] = malloc(256);
     sprintf(envp[4], "SERVER_PROTOCOL=%s", req->version);
-
+    
     envp[5] = strdup("REDIRECT_STATUS=200");
-    envp[6] = NULL;
+
+    envp[env_index] = NULL;
 
     log_message(&lg, LOG_DEBUG, "CGI SCRIPT_FILENAME: %s", envp[2]);
     // todo add the other vars and body
