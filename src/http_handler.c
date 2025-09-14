@@ -63,12 +63,9 @@ void handle_http_request(int client_sock) {
 
             if (cfg.routes[route_index].proxy_pass != NULL) {
                 // ? proxy
-                handle_proxy(client_sock,&http_req, &cfg.routes[route_index], buffer,
-                                buffer_size, readed_len);
-                                          
+                handle_proxy(client_sock, &http_req, &cfg.routes[route_index], buffer, buffer_size,
+                             readed_len);
 
-    
-                
             } else {
                 // ? http and static files
                 http_req.file_path = get_file_path(http_req.uri, cfg.routes[route_index]);

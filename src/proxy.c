@@ -53,10 +53,11 @@ int parse_proxy(route_config *route) {
 }
 
 //  todo : use epoll of better performance
-void handle_proxy(int client_sock,http_request *req, route_config *route, char *buffer, int buffer_size, int readed) {
+void handle_proxy(int client_sock, http_request *req, route_config *route, char *buffer,
+                  int buffer_size, int readed) {
     static int status_extracted = 0;
     static int extracted_status = 0;
-    
+
     int backend_sock = socket(AF_INET, SOCK_STREAM, 0);
     if (backend_sock < 0)
         return;
@@ -79,9 +80,9 @@ void handle_proxy(int client_sock,http_request *req, route_config *route, char *
         return;
     }
 
-    char *new_uri = req->uri;
+    char  *new_uri        = req->uri;
     size_t route_path_len = strlen(route->path);
-    
+
     if (strncmp(req->uri, route->path, route_path_len) == 0) {
         new_uri = req->uri + route_path_len;
         if (new_uri[0] == '\0') {
@@ -90,11 +91,11 @@ void handle_proxy(int client_sock,http_request *req, route_config *route, char *
     }
 
     char new_request_line[1024];
-    snprintf(new_request_line, sizeof(new_request_line), "%s %s %s\r\n", req->method, new_uri, req->version);
-    
+    snprintf(new_request_line, sizeof(new_request_line), "%s %s %s\r\n", req->method, new_uri,
+             req->version);
 
-    ssize_t sent = 0;
-    size_t new_line_len = strlen(new_request_line);
+    ssize_t sent         = 0;
+    size_t  new_line_len = strlen(new_request_line);
     while (sent < new_line_len) {
         ssize_t w = write(backend_sock, new_request_line + sent, new_line_len - sent);
         if (w <= 0) {
@@ -111,9 +112,9 @@ void handle_proxy(int client_sock,http_request *req, route_config *route, char *
     }
 
     size_t first_line_len = first_line_end - buffer;
-    size_t remaining_len = readed - (first_line_len + 2);
-    char *remaining_data = buffer + first_line_len + 2;
-    
+    size_t remaining_len  = readed - (first_line_len + 2);
+    char  *remaining_data = buffer + first_line_len + 2;
+
     sent = 0;
     while (sent < remaining_len) {
         ssize_t w = write(backend_sock, remaining_data + sent, remaining_len - sent);
@@ -133,12 +134,14 @@ void handle_proxy(int client_sock,http_request *req, route_config *route, char *
         FD_SET(backend_sock, &fds);
 
         int activity = select(maxfd, &fds, NULL, NULL, NULL);
-        if (activity < 0)break;
+        if (activity < 0)
+            break;
 
         // client -> backend
         if (FD_ISSET(client_sock, &fds)) {
             ssize_t n = recv(client_sock, buffer, buffer_size, 0);
-            if (n <= 0)  break;
+            if (n <= 0)
+                break;
             ssize_t sent = 0;
             while (sent < n) {
                 ssize_t w = write(backend_sock, buffer + sent, n - sent);
@@ -158,19 +161,19 @@ void handle_proxy(int client_sock,http_request *req, route_config *route, char *
                 log_message(&lg, LOG_INFO, "[handle_proxy] backend closed");
                 break;
             }
-            
+
             if (!status_extracted) {
-                if (n >= 12) { 
+                if (n >= 12) {
                     char status_str[4];
                     strncpy(status_str, buffer + 9, 3);
                     status_str[3] = '\0';
-                    
+
                     extracted_status = atoi(status_str);
                     http_log(&lg, req, extracted_status);
                     status_extracted = 1;
                 }
             }
-            
+
             ssize_t sent = 0;
             while (sent < n) {
                 ssize_t w = write(client_sock, buffer + sent, n - sent);
@@ -183,7 +186,7 @@ void handle_proxy(int client_sock,http_request *req, route_config *route, char *
             }
         }
     }
-    
+
     close(backend_sock);
     return;
 }
