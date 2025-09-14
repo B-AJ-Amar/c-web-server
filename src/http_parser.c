@@ -225,35 +225,6 @@ void parse_headers_lines(char *request_text, http_request *request, bool skip_he
     }
 }
 
-void parse_http_request(char *request_text, http_request *request) {
-    request->is_invalid    = 0;
-    request->headers       = NULL;
-    request->headers_count = 0;
-
-    char *line = strtok(request_text, "\r\n");
-    if (line) {
-        parse_request_line(line, request);
-        if (request->is_invalid)
-            return;
-    } else {
-        request->is_invalid = 1;
-        return;
-    }
-
-    while ((line = strtok(NULL, "\r\n")) && strlen(line) > 0) {
-        request->headers =
-            realloc(request->headers, sizeof(http_headers) * (request->headers_count + 1));
-        parse_header_line(line, &request->headers[request->headers_count]);
-        request->headers_count++;
-    }
-
-    char *body_start = strstr(request_text, "\r\n\r\n");
-    if (body_start) {
-        body_start += 4; // skip \n\r\n\r
-        strncpy(request->body, body_start, sizeof(request->body) - 1);
-    }
-}
-
 char **parse_env_cgi_php(http_request *req, char *buffer, int *readed_len) {
 
     int max_env_vars;
@@ -266,9 +237,11 @@ char **parse_env_cgi_php(http_request *req, char *buffer, int *readed_len) {
     if (!strcmp(req->method, HTTP_POST)) {
         for (int i = 0; i < req->headers_count; i++) {
             envp[++env_index] = malloc(512);
-            if (strcasecmp(req->headers[i].key, "Content-Length") == 0)
+            if (strcasecmp(req->headers[i].key, "Content-Length") == 0) {
+
                 sprintf(envp[env_index], "CONTENT_LENGTH=%s", req->headers[i].value);
-            else if (strcasecmp(req->headers[i].key, "Content-Type") == 0)
+                req->content_len = atoi(req->headers[i].value);
+            } else if (strcasecmp(req->headers[i].key, "Content-Type") == 0)
                 sprintf(envp[env_index], "CONTENT_TYPE=%s", req->headers[i].value);
             else
                 sprintf(envp[env_index], "HTTP_%s=%s", req->headers[i].key, req->headers[i].value);
@@ -321,7 +294,6 @@ void free_http_request(http_request *req) {
         req->file_path = NULL;
     }
 
-    // file_ext points within file_path, so just set to NULL
     req->file_ext = NULL;
 
     if (req->str_quary_params) {

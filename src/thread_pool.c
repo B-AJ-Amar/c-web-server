@@ -61,7 +61,6 @@ int destroy_thread_pool(int num_threads, pthread_t *threads) {
 
 void *start_thread(void *args) {
     thread_args *thread_data = (thread_args *)args;
-    int          thread_id   = thread_data->id;
     task_queue  *queue       = thread_data->queue;
 
     char *buffer = malloc(BUFFER_SIZE);

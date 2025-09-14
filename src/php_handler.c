@@ -15,14 +15,14 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-int handle_php_request(int client_sock, http_request *req, char *php_cgi_path, char *buffer,
-                       int *readed_len) {
+void handle_php_request(int client_sock, http_request *req, char *php_cgi_path, char *buffer,
+                        int *readed_len) {
 
     int fd[2];
     if (pipe(fd)) {
         log_message(&lg, LOG_ERROR, "Failed to prepare CGI environment");
         send_500(client_sock, req);
-        return 0;
+        return;
     }
     pid_t pid = fork();
 
@@ -35,7 +35,7 @@ int handle_php_request(int client_sock, http_request *req, char *php_cgi_path, c
             log_message(&lg, LOG_ERROR, "Failed to prepare CGI environment");
             send_500(client_sock, req);
             free_env_cgi_php(envp);
-            return 0;
+            return;
         }
 
         dup2(fd[1], STDOUT_FILENO);
@@ -60,7 +60,7 @@ int handle_php_request(int client_sock, http_request *req, char *php_cgi_path, c
                 if (s <= 0) {
                     log_message(&lg, LOG_ERROR, "Failed to send CGI output to client");
                     close(fd[0]);
-                    return 0;
+                    return;
                 }
                 sent += s;
             }
@@ -71,11 +71,11 @@ int handle_php_request(int client_sock, http_request *req, char *php_cgi_path, c
         close(fd[0]);
 
         if (total_sent > 0) {
-            return 1;
+            return;
         } else {
             log_message(&lg, LOG_ERROR, "No CGI output received");
             send_500(client_sock, req);
-            return 0;
+            return;
         }
 
     } else {

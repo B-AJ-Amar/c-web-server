@@ -55,27 +55,12 @@ typedef struct http_request {
     http_headers       *headers;
     int                 headers_count;
     int                 quary_params_count;
-    char                body[4096]; // Fixed-size buffer for request body
     int                 is_invalid;
     struct sockaddr_in *client_addr;
 } http_request;
 
-typedef struct http_response {
-    char       *version;
-    int         status;
-    char       *reason;
-    char       *body;
-    int         content_len;
-    const char *content_type; // html ,css , json ,txt
-    char       *date;
-    // TODO: extra headers
-    // http_headers *headers;
-    // int headers_count;
-} http_response;
-
 void parse_request_line(char *line, http_request *request);
 void parse_header_line(char *line, http_headers *header);
-void parse_http_request(char *request_text, http_request *request);
 
 void free_uri_regex();
 void validate_uri(char *uri, http_request *request);
@@ -85,6 +70,5 @@ char **parse_env_cgi_php(http_request *req, char *buffer, int *readed_len);
 void   free_env_cgi_php(char **envp);
 
 void free_http_request(http_request *req);
-void free_http_response(http_response *res);
 
 #endif // HTTP_PARSER_H
