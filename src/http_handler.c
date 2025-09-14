@@ -54,8 +54,6 @@ void handle_http_request(int client_sock) {
         } else {
 
             if (!is_allowed_method(cfg.routes[route_index].methods, http_req.method)) {
-                log_message(&lg, LOG_WARN, "Method %s not allowed for %s", http_req.method,
-                            http_req.endpoint);
                 send_405(client_sock, &http_req);
                 close(client_sock);
                 return;

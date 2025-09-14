@@ -13,6 +13,10 @@ all: dirs $(TARGET)
 
 $(TARGET): $(OBJ)
 	$(CC) $(CFLAGS) -o $@ $^
+	@if [ -d externals ]; then \
+		echo "Copying externals/ content to bin/"; \
+		cp -r externals/* bin/ 2>/dev/null || true; \
+	fi
 
 # Build rule for src/
 build/%.o: src/%.c
@@ -34,6 +38,11 @@ clean:
 
 # rebuild & run
 cbr: clean all run
+br: clean all run
+
+r: run
 
 format:
 	find src include -name "*.c" -o -name "*.h" | xargs clang-format -i
+
+f: format

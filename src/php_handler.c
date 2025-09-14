@@ -66,6 +66,7 @@ int handle_php_request(int client_sock, http_request *req, char *php_cgi_path, c
             }
             total_sent += n;
         }
+        http_log(&lg, req, 200);
 
         close(fd[0]);
 
