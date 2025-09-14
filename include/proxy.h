@@ -1,6 +1,8 @@
 #ifndef PROXY_H
 #define PROXY_H
 
+#include "http_parser.h"
+
 struct route_config;
 
 typedef struct proxy_info {
@@ -10,7 +12,6 @@ typedef struct proxy_info {
 } proxy_info;
 
 int parse_proxy(struct route_config *route);
-int handle_proxy(int client_sock, struct route_config *route, char *buffer, int buffer_size,
-                 int readed);
+void handle_proxy(int client_sock,http_request *req,struct route_config *route, char *buffer, int buffer_size, int readed) ;
 
 #endif // PROXY_H

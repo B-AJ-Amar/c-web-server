@@ -144,9 +144,7 @@ void parse_headers_lines(char *request_text, http_request *request, bool skip_he
     char *text_copy = NULL;
     char *line      = NULL;
 
-    log_message(&lg, LOG_DEBUG, "[parse_headers_lines]Parsing headers from FILE*");
     if (request->use_file && request->req_data) {
-        log_message(&lg, LOG_DEBUG, "[parse_headers_lines]Parsing headers from FILE*");
         fseek(request->req_data, 0, SEEK_SET);
 
         char line_buffer[2048];
@@ -261,8 +259,6 @@ char **parse_env_cgi_php(http_request *req, char *buffer, int *readed_len) {
     int max_env_vars;
 
     int env_index = 5;
-    log_message(&lg, LOG_DEBUG, "[parse_env_cgi_php] going to parse headers");
-    //! i think that i will do this here : parse_headers_lines(buffer,req,1,1);
     parse_headers_lines(buffer, req, 1, 1);
     max_env_vars = 6 + (req->headers_count ? req->headers_count : 0) + 1;
     char **envp  = malloc(max_env_vars * sizeof(char *));
@@ -304,7 +300,6 @@ char **parse_env_cgi_php(http_request *req, char *buffer, int *readed_len) {
 
     envp[env_index] = NULL;
 
-    log_message(&lg, LOG_DEBUG, "CGI SCRIPT_FILENAME: %s", envp[2]);
     // todo add the other vars and body
 
     return envp;

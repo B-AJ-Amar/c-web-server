@@ -52,8 +52,6 @@ void handle_http_request(int client_sock) {
             close(client_sock);
             return;
         } else {
-            log_message(&lg, LOG_DEBUG, "Router : cthe choosen route is %d , %s ", route_index,
-                        cfg.routes[route_index].path);
 
             if (!is_allowed_method(cfg.routes[route_index].methods, http_req.method)) {
                 log_message(&lg, LOG_WARN, "Method %s not allowed for %s", http_req.method,
@@ -65,14 +63,12 @@ void handle_http_request(int client_sock) {
 
             if (cfg.routes[route_index].proxy_pass != NULL) {
                 // ? proxy
-                int status = handle_proxy(client_sock, &cfg.routes[route_index], buffer,
-                                          buffer_size, readed_len);
+                handle_proxy(client_sock,&http_req, &cfg.routes[route_index], buffer,
+                                buffer_size, readed_len);
+                                          
 
-                if (status != 0) {
-                    log_message(&lg, LOG_WARN, "Bad Gateway to %s",
-                                cfg.routes[route_index].proxy_pass);
-                    send_502(client_sock, &http_req);
-                }
+    
+                
             } else {
                 // ? http and static files
                 http_req.file_path = get_file_path(http_req.uri, cfg.routes[route_index]);

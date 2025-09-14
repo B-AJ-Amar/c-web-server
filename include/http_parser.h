@@ -41,7 +41,7 @@ typedef struct http_quary_params {
 typedef struct http_request {
     char                method[16];
     char                uri[256];
-    char                version[8];
+    char                version[12];
     char                endpoint[256];
     char               *file_path;
     char               *file_ext;

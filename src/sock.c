@@ -95,7 +95,6 @@ FILE *read_long_http_request(int client_sock, char *buffer, int buffer_size, int
         return NULL;
     }
 
-    log_message(&lg, LOG_DEBUG, "Reading long HTTP request into temp file %d", fileno(req_file));
     fwrite(buffer, 1, *readed_len, req_file);
 
     // set socket to non-blocking mode
