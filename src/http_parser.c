@@ -237,11 +237,10 @@ char **parse_env_cgi_php(http_request *req, char *buffer, int *readed_len) {
     if (!strcmp(req->method, HTTP_POST)) {
         for (int i = 0; i < req->headers_count; i++) {
             envp[++env_index] = malloc(512);
-            if (strcasecmp(req->headers[i].key, "Content-Length") == 0) {
-
+            if (strcmp(req->headers[i].key, "CONTENT_LENGTH") == 0) {
                 sprintf(envp[env_index], "CONTENT_LENGTH=%s", req->headers[i].value);
                 req->content_len = atoi(req->headers[i].value);
-            } else if (strcasecmp(req->headers[i].key, "Content-Type") == 0)
+            } else if (strcmp(req->headers[i].key, "CONTENT_TYPE") == 0)
                 sprintf(envp[env_index], "CONTENT_TYPE=%s", req->headers[i].value);
             else
                 sprintf(envp[env_index], "HTTP_%s=%s", req->headers[i].key, req->headers[i].value);
