@@ -66,7 +66,7 @@ int send_file(int client_sock, const char *filepath, char *buffer, size_t buffer
 
 char *read_request_head_line(int client_sock, char *buffer, int buffer_size, int *readed_len) {
 
-    ssize_t n = read(client_sock, buffer, buffer_size);
+    ssize_t n = read(client_sock, buffer, buffer_size - 1);
     if (n <= 0)
         return NULL;
 
@@ -87,14 +87,12 @@ char *read_request_head_line(int client_sock, char *buffer, int buffer_size, int
 }
 
 FILE *read_long_http_request(int client_sock, char *buffer, int buffer_size, int *readed_len) {
-    if (buffer_size > *readed_len)
+    if (buffer_size - 1 <= *readed_len)
         return NULL;
-
     FILE *req_file = tmpfile();
     if (!req_file) {
         return NULL;
     }
-
     fwrite(buffer, 1, *readed_len, req_file);
 
     // set socket to non-blocking mode

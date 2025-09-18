@@ -74,7 +74,7 @@ A lightweight web server written in C, built from scratch to better understand n
 
 - **Large Request Handling**
   - [x] Fix buffer overflow issues when sending large files.
-  - [ ] Handle receiving large requests (buffer overflow). (i will do this after multi-threading to avoid conflicts)
+  - [x] (1/2 i didnt handle large php request yet and i dont think that i will do it)Handle receiving large requests (buffer overflow). (i will do this after multi-threading to avoid conflicts)
 
 - **Multi-Threading Support**
   - [x] Enable the server to handle multiple clients concurrently using thread pool.
@@ -84,8 +84,7 @@ A lightweight web server written in C, built from scratch to better understand n
   - [ ] Implement TLS/SSL support for HTTPS.
 
 - **Dynamic Content (PHP Support)**
-  - [ ] Integrate with a PHP interpreter to handle dynamic web pages.
-  - [ ] Support executing PHP scripts and returning the output.
+  - [X] Support executing PHP scripts and returning the output.
 
 ### Future Enhancements
 
